@@ -5607,7 +5607,7 @@ void engine_config(int restart, struct engine *e, struct swift_params *params,
 
 #ifdef WITH_LOGGER
   /* Write the particle logger header */
-  logger_write_file_header(e->logger, e);
+  logger_write_file_header(e->logger);
 #endif
 
   /* Initialise the structure finder */
