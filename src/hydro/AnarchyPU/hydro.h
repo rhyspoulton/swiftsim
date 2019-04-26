@@ -123,7 +123,7 @@ hydro_get_drifted_physical_internal_energy(const struct part *restrict p,
 __attribute__((always_inline)) INLINE static float hydro_get_comoving_pressure(
     const struct part *restrict p) {
 
-  return p->pressure_bar;
+  return p->weighted_rho * p->u * hydro_gamma_minus_one;
 }
 
 /**
@@ -138,7 +138,7 @@ __attribute__((always_inline)) INLINE static float hydro_get_comoving_pressure(
 __attribute__((always_inline)) INLINE static float hydro_get_physical_pressure(
     const struct part *restrict p, const struct cosmology *cosmo) {
 
-  return cosmo->a_factor_pressure * p->pressure_bar;
+  return cosmo->a_factor_pressure * hydro_get_comoving_pressure(p);
 }
 
 /**
@@ -219,7 +219,9 @@ hydro_get_comoving_soundspeed(const struct part *restrict p) {
   /* Compute the sound speed -- see theory section for justification */
   /* IDEAL GAS ONLY -- P-U does not work with generic EoS. */
 
-  const float square_rooted = sqrtf(hydro_gamma * p->pressure_bar / p->rho);
+  const float pressure = hydro_get_comoving_pressure(p);
+
+  const float square_rooted = sqrtf(hydro_gamma * pressure / p->rho);
 
   return square_rooted;
 }
@@ -507,8 +509,8 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
   p->density.wcount_dh = 0.f;
   p->rho = 0.f;
   p->density.rho_dh = 0.f;
-  p->pressure_bar = 0.f;
-  p->density.pressure_bar_dh = 0.f;
+  p->weighted_rho = 0.f;
+  p->density.weighted_rho_dh = 0.f;
 
   p->density.rot_v[0] = 0.f;
   p->density.rot_v[1] = 0.f;
@@ -536,23 +538,24 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
 
   /* Some smoothing length multiples. */
   const float h = p->h;
-  const float h_inv = 1.0f / h;                       /* 1/h */
+  const float h_inv = 1.f / h;                       /* 1/h */
   const float h_inv_dim = pow_dimension(h_inv);       /* 1/h^d */
   const float h_inv_dim_plus_one = h_inv_dim * h_inv; /* 1/h^(d+1) */
+  const float u_inv = 1.f / p->u;
 
   /* Final operation on the density (add self-contribution). */
   p->rho += p->mass * kernel_root;
   p->density.rho_dh -= hydro_dimension * p->mass * kernel_root;
-  p->pressure_bar += p->mass * p->u * kernel_root;
-  p->density.pressure_bar_dh -= hydro_dimension * p->mass * p->u * kernel_root;
+  p->weighted_rho += p->mass * p->u * kernel_root;
+  p->density.weighted_rho_dh -= hydro_dimension * p->mass * p->u * kernel_root;
   p->density.wcount += kernel_root;
   p->density.wcount_dh -= hydro_dimension * kernel_root;
 
   /* Finish the calculation by inserting the missing h-factors */
   p->rho *= h_inv_dim;
   p->density.rho_dh *= h_inv_dim_plus_one;
-  p->pressure_bar *= (h_inv_dim * hydro_gamma_minus_one);
-  p->density.pressure_bar_dh *= (h_inv_dim_plus_one * hydro_gamma_minus_one);
+  p->weighted_rho *= (h_inv_dim * u_inv);
+  p->density.weighted_rho_dh *= (h_inv_dim_plus_one * u_inv);
   p->density.wcount *= h_inv_dim;
   p->density.wcount_dh *= h_inv_dim_plus_one;
 
@@ -605,8 +608,10 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_gradient(
       abs_div_v / (abs_div_v + curl_v + 0.0001f * soundspeed * fac_B / p->h);
 
   /* Compute the "grad h" term */
+  /* Reconstruct pressure_bar_dh */
+  const float pressure_bar_dh = hydro_gamma_minus_one * p->weighted_rho_dh * p->u;
   const float common_factor = p->h / (hydro_dimension * p->density.wcount);
-  const float grad_h_term = (p->density.pressure_bar_dh * common_factor *
+  const float grad_h_term = (pressure_bar_dh * common_factor *
                              hydro_one_over_gamma_minus_one) /
                             (1.f + common_factor * p->density.wcount_dh);
 
@@ -678,12 +683,12 @@ __attribute__((always_inline)) INLINE static void hydro_part_has_no_neighbours(
   /* Re-set problematic values */
   p->rho = p->mass * kernel_root * h_inv_dim;
   p->viscosity.v_sig = 0.f;
-  p->pressure_bar =
-      p->mass * p->u * hydro_gamma_minus_one * kernel_root * h_inv_dim;
+  p->weighted_rho =
+      p->mass * kernel_root * h_inv_dim; /* Same as regular density */
   p->density.wcount = kernel_root * h_inv_dim;
   p->density.rho_dh = 0.f;
   p->density.wcount_dh = 0.f;
-  p->density.pressure_bar_dh = 0.f;
+  p->density.weighted_rho_dh = 0.f;
 
   p->density.rot_v[0] = 0.f;
   p->density.rot_v[1] = 0.f;
@@ -895,11 +900,11 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
     const float expf_approx =
         approx_expf(w2); /* 4th order expansion of exp(w) */
     p->rho *= expf_approx;
-    p->pressure_bar *= expf_approx;
+    p->weighted_rho *= expf_approx;
   } else {
     const float expf_exact = expf(w2);
     p->rho *= expf_exact;
-    p->pressure_bar *= expf_exact;
+    p->weighted_rho *= expf_exact;
   }
 
   /* Compute the new sound speed */

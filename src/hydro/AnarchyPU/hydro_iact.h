@@ -68,9 +68,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->rho += mj * wi;
   pi->density.rho_dh -= mj * (hydro_dimension * wi + ui * wi_dx);
 
-  pi->pressure_bar += mj * wi * pj->u;
-  pi->density.pressure_bar_dh -=
+  /* Right now, this is the smoothed pressure -- we divide out by u later. */
+  pi->weighted_rho += mj * wi * pj->u;
+  pi->density.weighted_rho_dh -=
       mj * pj->u * (hydro_dimension * wi + ui * wi_dx);
+
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + ui * wi_dx);
 
@@ -81,9 +83,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   pj->rho += mi * wj;
   pj->density.rho_dh -= mi * (hydro_dimension * wj + uj * wj_dx);
-  pj->pressure_bar += mi * wj * pi->u;
-  pj->density.pressure_bar_dh -=
+
+  /* Right now, this is the smoothed pressure -- we divide out by u later. */
+  pj->weighted_rho += mi * wj * pi->u;
+  pj->density.weighted_rho_dh -=
       mi * pi->u * (hydro_dimension * wj + uj * wj_dx);
+
   pj->density.wcount += wj;
   pj->density.wcount_dh -= (hydro_dimension * wj + uj * wj_dx);
 
@@ -148,10 +153,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->rho += mj * wi;
   pi->density.rho_dh -= mj * (hydro_dimension * wi + ui * wi_dx);
 
-  pi->pressure_bar += mj * wi * pj->u;
-
-  pi->density.pressure_bar_dh -=
+  /* Right now, this is the smoothed pressure -- we divide out by u later. */
+  pi->weighted_rho += mj * wi * pj->u;
+  pi->density.weighted_rho_dh -=
       mj * pj->u * (hydro_dimension * wi + ui * wi_dx);
+
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + ui * wi_dx);
 
@@ -384,10 +390,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float visc_acc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
 
   /* SPH acceleration term */
-  const float sph_acc_term =
-      pj->u * pi->u * hydro_gamma_minus_one * hydro_gamma_minus_one *
-      ((f_ij / pi->pressure_bar) * wi_dr + (f_ji / pj->pressure_bar) * wj_dr) *
-      r_inv;
+  const float sph_acc_term = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                             ((f_ij * pj->u / pi->weighted_rho) * wi_dr +
+                              (f_ji * pi->u / pj->weighted_rho) * wj_dr) *
+                             r_inv;
 
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term;
@@ -403,10 +409,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Get the time derivative for u. */
   const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
-                              pj->u * pi->u * (f_ij / pi->pressure_bar) *
+                              pj->u * (f_ij / pi->weighted_rho) *
                               wi_dr * dvdr * r_inv;
   const float sph_du_term_j = hydro_gamma_minus_one * hydro_gamma_minus_one *
-                              pi->u * pj->u * (f_ji / pj->pressure_bar) *
+                              pi->u * (f_ji / pj->weighted_rho) *
                               wj_dr * dvdr * r_inv;
 
   /* Viscosity term */
@@ -515,10 +521,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float visc_acc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
 
   /* SPH acceleration term */
-  const float sph_acc_term =
-      pj->u * pi->u * hydro_gamma_minus_one * hydro_gamma_minus_one *
-      ((f_ij / pi->pressure_bar) * wi_dr + (f_ji / pj->pressure_bar) * wj_dr) *
-      r_inv;
+  const float sph_acc_term = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                             ((f_ij * pj->u / pi->weighted_rho) * wi_dr +
+                              (f_ji * pi->u / pj->weighted_rho) * wj_dr) *
+                             r_inv;
 
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term;
@@ -530,7 +536,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Get the time derivative for u. */
   const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
-                              pj->u * pi->u * (f_ij / pi->pressure_bar) *
+                              pj->u * (f_ij / pi->weighted_rho) *
                               wi_dr * dvdr * r_inv;
 
   /* Viscosity term */

@@ -150,6 +150,12 @@ INLINE static void convert_diffusion(const struct engine* e,
   ret[0] = p->diffusion.alpha;
 }
 
+INLINE static void convert_P(const struct engine* e,
+                             const struct part* p,
+                             const struct xpart* xp, float* ret) {
+  ret[0] = p->weighted_rho * p->u * hydro_gamma_minus_one;
+}
+
 /**
  * @brief Specifies which particle fields to write to a dataset
  *
@@ -180,8 +186,8 @@ INLINE static void hydro_write_particles(const struct part* parts,
                                  UNIT_CONV_NO_UNITS, parts, id);
   list[6] =
       io_make_output_field("Density", FLOAT, 1, UNIT_CONV_DENSITY, parts, rho);
-  list[7] = io_make_output_field("Pressure", FLOAT, 1, UNIT_CONV_PRESSURE,
-                                 parts, pressure_bar);
+  list[7] = io_make_output_field_convert_part("Pressure", FLOAT, 1, UNIT_CONV_PRESSURE,
+                                              parts, xparts, convert_P)
   list[8] = io_make_output_field_convert_part("Entropy", FLOAT, 1,
                                               UNIT_CONV_ENTROPY_PER_UNIT_MASS,
                                               parts, xparts, convert_S);

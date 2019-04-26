@@ -107,8 +107,8 @@ struct part {
   /*! Particle density. */
   float rho;
 
-  /*! Particle pressure (weighted) */
-  float pressure_bar;
+  /*! Energy-weighted density (used in EoM) */
+  float weighted_rho;
 
   /* Store viscosity information in a separate struct. */
   struct {
@@ -159,8 +159,8 @@ struct part {
       /*! Derivative of density with respect to h */
       float rho_dh;
 
-      /*! Derivative of the weighted pressure with respect to h */
-      float pressure_bar_dh;
+      /*! Derivative of the weighted density with respect to h */
+      float weighted_rho_dh;
 
       /*! Particle velocity curl. */
       float rot_v[3];
