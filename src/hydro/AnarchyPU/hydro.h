@@ -609,7 +609,7 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_gradient(
 
   /* Compute the "grad h" term */
   /* Reconstruct pressure_bar_dh */
-  const float pressure_bar_dh = hydro_gamma_minus_one * p->weighted_rho_dh * p->u;
+  const float pressure_bar_dh = hydro_gamma_minus_one * p->density.weighted_rho_dh * p->u;
   const float common_factor = p->h / (hydro_dimension * p->density.wcount);
   const float grad_h_term = (pressure_bar_dh * common_factor *
                              hydro_one_over_gamma_minus_one) /
