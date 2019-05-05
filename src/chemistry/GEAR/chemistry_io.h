@@ -28,12 +28,12 @@
 #include "units.h"
 
 /**
- * @brief Return a string containing the name of a given #chemistry_element.
+ * @brief Return a string containing the name of a given element.
  */
 __attribute__((always_inline)) INLINE static const char*
-chemistry_get_element_name(enum chemistry_element elem) {
+chemistry_get_element_name(int elem) {
 
-  static const char* chemistry_element_names[chemistry_element_count] = {
+  static const char* chemistry_element_names[CHEMISTRY_ELEMENT_COUNT] = {
       "Oxygen",    "Magnesium", "Sulfur", "Iron",    "Zinc",
       "Strontium", "Yttrium",   "Barium", "Europium"};
 
@@ -53,12 +53,10 @@ INLINE static int chemistry_read_particles(struct part* parts,
 
   /* List what we want to read */
   list[0] = io_make_input_field(
-      "ElementAbundance", FLOAT, chemistry_element_count, OPTIONAL,
+      "ElementAbundance", FLOAT, CHEMISTRY_ELEMENT_COUNT, OPTIONAL,
       UNIT_CONV_NO_UNITS, parts, chemistry_data.metal_mass_fraction);
-  list[1] = io_make_input_field("Z", FLOAT, 1, OPTIONAL, UNIT_CONV_NO_UNITS,
-                                parts, chemistry_data.Z);
 
-  return 2;
+  return 1;
 }
 
 /**
@@ -74,17 +72,14 @@ INLINE static int chemistry_write_particles(const struct part* parts,
 
   /* List what we want to write */
   list[0] = io_make_output_field(
-      "SmoothedElementAbundance", FLOAT, chemistry_element_count,
+      "SmoothedElementAbundance", FLOAT, CHEMISTRY_ELEMENT_COUNT,
       UNIT_CONV_NO_UNITS, parts, chemistry_data.smoothed_metal_mass_fraction);
 
-  list[1] = io_make_output_field("Z", FLOAT, 1, UNIT_CONV_NO_UNITS, parts,
-                                 chemistry_data.Z);
-
-  list[2] = io_make_output_field("ElementAbundance", FLOAT,
-                                 chemistry_element_count, UNIT_CONV_NO_UNITS,
+  list[1] = io_make_output_field("ElementAbundance", FLOAT,
+                                 CHEMISTRY_ELEMENT_COUNT, UNIT_CONV_NO_UNITS,
                                  parts, chemistry_data.metal_mass_fraction);
 
-  return 3;
+  return 2;
 }
 
 /**
@@ -99,18 +94,11 @@ INLINE static int chemistry_write_sparticles(const struct spart* sparts,
                                              struct io_props* list) {
 
   /* List what we want to write */
-  list[0] = io_make_output_field(
-      "SmoothedElementAbundance", FLOAT, chemistry_element_count,
-      UNIT_CONV_NO_UNITS, sparts, chemistry_data.smoothed_metal_mass_fraction);
-
-  list[1] = io_make_output_field("Z", FLOAT, 1, UNIT_CONV_NO_UNITS, sparts,
-                                 chemistry_data.Z);
-
-  list[2] = io_make_output_field("ElementAbundance", FLOAT,
-                                 chemistry_element_count, UNIT_CONV_NO_UNITS,
+  list[0] = io_make_output_field("ElementAbundance", FLOAT,
+                                 CHEMISTRY_ELEMENT_COUNT, UNIT_CONV_NO_UNITS,
                                  sparts, chemistry_data.metal_mass_fraction);
 
-  return 3;
+  return 1;
 }
 
 /**
@@ -137,8 +125,8 @@ INLINE static int chemistry_write_bparticles(const struct bpart* bparts,
 INLINE static void chemistry_write_flavour(hid_t h_grp) {
 
   io_write_attribute_s(h_grp, "Chemistry Model", "GEAR");
-  for (enum chemistry_element i = chemistry_element_O;
-       i < chemistry_element_count; i++) {
+  for (int i = 0;
+       i < CHEMISTRY_ELEMENT_COUNT; i++) {
     char buffer[20];
     sprintf(buffer, "Element %d", (int)i);
     io_write_attribute_s(h_grp, buffer, chemistry_get_element_name(i));
