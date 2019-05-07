@@ -352,7 +352,12 @@ __attribute__((always_inline)) INLINE static void hydro_set_physical_entropy(
 
   /* Note there is no conversion from physical to comoving entropy */
   const float comoving_entropy = entropy;
-  xp->u_full = gas_internal_energy_from_entropy(p->rho, comoving_entropy);
+  const float physical_density = hydro_get_physical_density(p, cosmo);
+
+  const float new_u = gas_internal_energy_from_entropy(physical_density, comoving_entropy);
+
+  p->u = new_u;
+  xp->u_full = new_u;
 }
 
 /**
