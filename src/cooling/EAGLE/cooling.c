@@ -202,10 +202,15 @@ void cooling_update(const struct cosmology *cosmo,
  * @param ID ID of the particle (for debugging).
  */
 INLINE static double bisection_iter(
-    const double u_ini_cgs, const double n_H_cgs, const double redshift,
+				    const double u_ini_cgs, 
+				    //const double n_H_cgs, 
+				    const double redshift,
     const int n_H_index, const float d_n_H, const int He_index,
     const float d_He, const double Lambda_He_reion_cgs,
-    const double ratefact_cgs,
+    //const double ratefact_cgs,
+    const double P_bar, const double XH,
+    const struct cosmology *cosmo,
+    const struct phys_const *phys_const,
     const struct cooling_function_data *restrict cooling,
     const float abundance_ratio[chemistry_element_count + 2],
     const double dt_cgs, const long long ID) {
@@ -217,6 +222,11 @@ INLINE static double bisection_iter(
   /*************************************/
   /* Let's get a first guess           */
   /*************************************/
+
+  double u_ini = u_ini_cgs * cooling->internal_energy_from_cgs;
+  double rho_phys = (P_bar / u_ini) * cosmo->a3_inv;
+  double n_H = rho_phys * XH / phys_const->const_proton_mass;
+  double n_H_cgs = n_H * cooling->number_density_to_cgs;
 
   double LambdaNet_cgs =
       Lambda_He_reion_cgs +
@@ -239,6 +249,13 @@ INLINE static double bisection_iter(
                                        abundance_ratio, n_H_index, d_n_H,
                                        He_index, d_He, cooling);
 
+    /* Recompute the rho^2 term */
+    double u_lower = u_lower_cgs * cooling->internal_energy_from_cgs;
+    rho_phys = (P_bar / u_lower) * cosmo->a3_inv;
+    n_H = rho_phys * XH / phys_const->const_proton_mass;
+    n_H_cgs = n_H * cooling->number_density_to_cgs;
+    double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
+
     int i = 0;
     while (u_lower_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs >
                0 &&
@@ -252,6 +269,14 @@ INLINE static double bisection_iter(
                       eagle_cooling_rate(log10(u_lower_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
                                          He_index, d_He, cooling);
+
+      /* Recompute the rho^2 term */
+      u_lower = u_lower_cgs * cooling->internal_energy_from_cgs;
+      rho_phys = (P_bar / u_lower) * cosmo->a3_inv;
+      n_H = rho_phys * XH / phys_const->const_proton_mass;
+      n_H_cgs = n_H * cooling->number_density_to_cgs;
+      ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
+
       i++;
     }
 
@@ -273,6 +298,13 @@ INLINE static double bisection_iter(
                                        abundance_ratio, n_H_index, d_n_H,
                                        He_index, d_He, cooling);
 
+    /* Recompute the rho^2 term */
+    double u_upper = u_upper_cgs * cooling->internal_energy_from_cgs;
+    rho_phys = (P_bar / u_upper) * cosmo->a3_inv;
+    n_H = rho_phys * XH / phys_const->const_proton_mass;
+    n_H_cgs = n_H * cooling->number_density_to_cgs;
+    double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
+
     int i = 0;
     while (u_upper_cgs - u_ini_cgs - LambdaNet_cgs * ratefact_cgs * dt_cgs <
                0 &&
@@ -286,6 +318,14 @@ INLINE static double bisection_iter(
                       eagle_cooling_rate(log10(u_upper_cgs), redshift, n_H_cgs,
                                          abundance_ratio, n_H_index, d_n_H,
                                          He_index, d_He, cooling);
+
+      /* Recompute the rho^2 term */
+      u_upper = u_upper_cgs * cooling->internal_energy_from_cgs;
+      rho_phys = (P_bar / u_upper) * cosmo->a3_inv;
+      n_H = rho_phys * XH / phys_const->const_proton_mass;
+      n_H_cgs = n_H * cooling->number_density_to_cgs;
+      ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
+
       i++;
     }
 
@@ -317,6 +357,13 @@ INLINE static double bisection_iter(
                                        abundance_ratio, n_H_index, d_n_H,
                                        He_index, d_He, cooling);
 
+    /* Recompute the rho^2 term */
+    double u_next = u_next_cgs * cooling->internal_energy_from_cgs;
+    rho_phys = (P_bar / u_next) * cosmo->a3_inv;
+    n_H = rho_phys * XH / phys_const->const_proton_mass;
+    n_H_cgs = n_H * cooling->number_density_to_cgs;
+    double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
+    
     // Debugging
     if (u_next_cgs <= 0)
       error("u_next_cgs %.5e u_upper %.5e u_lower %.5e Lambda %.5e", u_next_cgs,
@@ -430,13 +477,14 @@ void cooling_cool_part(const struct phys_const *phys_const,
   const float HeFrac = XHe / (XH + XHe);
 
   /* convert Hydrogen mass fraction into physical Hydrogen number density */
-  const double n_H =
-      hydro_get_physical_density(p, cosmo) * XH / phys_const->const_proton_mass;
+  //const double rho_phys = hydro_get_physical_density(p, cosmo);
+  const double rho_phys = (p->pressure_bar / p->u) * cosmo->a3_inv;
+  const double n_H = rho_phys * XH / phys_const->const_proton_mass;
   const double n_H_cgs = n_H * cooling->number_density_to_cgs;
 
   /* ratefact = n_H * n_H / rho; Might lead to round-off error: replaced by
    * equivalent expression  below */
-  const double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
+  double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
 
   /* compute hydrogen number density and helium fraction table indices and
    * offsets (These are fixed for any value of u, so no need to recompute them)
@@ -480,8 +528,9 @@ void cooling_cool_part(const struct phys_const *phys_const,
 
     /* Otherwise, go the bisection route. */
     u_final_cgs =
-        bisection_iter(u_0_cgs, n_H_cgs, cosmo->z, n_H_index, d_n_H, He_index,
-                       d_He, Lambda_He_reion_cgs, ratefact_cgs, cooling,
+      bisection_iter(u_0_cgs, /*n_H_cgs, */cosmo->z, n_H_index, d_n_H, He_index,
+                       d_He, Lambda_He_reion_cgs, p->pressure_bar, XH, 
+		       cosmo, phys_const,cooling, 
                        abundance_ratio, dt_cgs, p->id);
   }
 
