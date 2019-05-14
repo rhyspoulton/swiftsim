@@ -224,7 +224,7 @@ INLINE static double bisection_iter(
   /*************************************/
 
   double u_ini = u_ini_cgs * cooling->internal_energy_from_cgs;
-  double rho_phys = (P_bar / u_ini) * cosmo->a3_inv;
+  double rho_phys = hydro_one_over_gamma_minus_one * (P_bar / u_ini) * cosmo->a3_inv;
   double n_H = rho_phys * XH / phys_const->const_proton_mass;
   double n_H_cgs = n_H * cooling->number_density_to_cgs;
 
@@ -251,7 +251,7 @@ INLINE static double bisection_iter(
 
     /* Recompute the rho^2 term */
     double u_lower = u_lower_cgs * cooling->internal_energy_from_cgs;
-    rho_phys = (P_bar / u_lower) * cosmo->a3_inv;
+    rho_phys =  hydro_one_over_gamma_minus_one * (P_bar / u_lower) * cosmo->a3_inv;
     n_H = rho_phys * XH / phys_const->const_proton_mass;
     n_H_cgs = n_H * cooling->number_density_to_cgs;
     double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
@@ -272,7 +272,7 @@ INLINE static double bisection_iter(
 
       /* Recompute the rho^2 term */
       u_lower = u_lower_cgs * cooling->internal_energy_from_cgs;
-      rho_phys = (P_bar / u_lower) * cosmo->a3_inv;
+      rho_phys = hydro_one_over_gamma_minus_one * (P_bar / u_lower) * cosmo->a3_inv;
       n_H = rho_phys * XH / phys_const->const_proton_mass;
       n_H_cgs = n_H * cooling->number_density_to_cgs;
       ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
@@ -300,7 +300,7 @@ INLINE static double bisection_iter(
 
     /* Recompute the rho^2 term */
     double u_upper = u_upper_cgs * cooling->internal_energy_from_cgs;
-    rho_phys = (P_bar / u_upper) * cosmo->a3_inv;
+    rho_phys = hydro_one_over_gamma_minus_one *(P_bar / u_upper) * cosmo->a3_inv;
     n_H = rho_phys * XH / phys_const->const_proton_mass;
     n_H_cgs = n_H * cooling->number_density_to_cgs;
     double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
@@ -321,7 +321,7 @@ INLINE static double bisection_iter(
 
       /* Recompute the rho^2 term */
       u_upper = u_upper_cgs * cooling->internal_energy_from_cgs;
-      rho_phys = (P_bar / u_upper) * cosmo->a3_inv;
+      rho_phys = hydro_one_over_gamma_minus_one *(P_bar / u_upper) * cosmo->a3_inv;
       n_H = rho_phys * XH / phys_const->const_proton_mass;
       n_H_cgs = n_H * cooling->number_density_to_cgs;
       ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
@@ -359,7 +359,7 @@ INLINE static double bisection_iter(
 
     /* Recompute the rho^2 term */
     double u_next = u_next_cgs * cooling->internal_energy_from_cgs;
-    rho_phys = (P_bar / u_next) * cosmo->a3_inv;
+    rho_phys = hydro_one_over_gamma_minus_one *(P_bar / u_next) * cosmo->a3_inv;
     n_H = rho_phys * XH / phys_const->const_proton_mass;
     n_H_cgs = n_H * cooling->number_density_to_cgs;
     double ratefact_cgs = n_H_cgs * (XH * cooling->inv_proton_mass_cgs);
@@ -478,7 +478,7 @@ void cooling_cool_part(const struct phys_const *phys_const,
 
   /* convert Hydrogen mass fraction into physical Hydrogen number density */
   //const double rho_phys = hydro_get_physical_density(p, cosmo);
-  const double rho_phys = (p->pressure_bar / p->u) * cosmo->a3_inv;
+  const double rho_phys = hydro_one_over_gamma_minus_one *(p->pressure_bar / p->u) * cosmo->a3_inv;
   const double n_H = rho_phys * XH / phys_const->const_proton_mass;
   const double n_H_cgs = n_H * cooling->number_density_to_cgs;
 
