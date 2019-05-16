@@ -752,6 +752,9 @@ double cosmology_get_therm_kick_factor(const struct cosmology *c,
  * @brief Compute the cosmic time (in internal units) between two points
  * on the integer time line.
  *
+ * Only valid for a flat radiation-free Universe with constant dark energy
+ * equation of state
+ *
  * @param c The current #cosmology.
  * @param ti_start the (integer) time of the start.
  * @param ti_end the (integer) time of the end.
@@ -766,19 +769,16 @@ double cosmology_get_delta_time(const struct cosmology *c,
   const double log_a_start = c->log_a_begin + ti_start * c->time_base;
   const double log_a_end = c->log_a_begin + ti_end * c->time_base;
 
-  /* Time between a_begin and a_start */
-  const double t1 = interp_table(c->time_interp_table, log_a_start,
-                                 c->log_a_begin, c->log_a_end);
-
-  /* Time between a_begin and a_end */
-  const double t2 = interp_table(c->time_interp_table, log_a_end,
-                                 c->log_a_begin, c->log_a_end);
-
-  return t2 - t1;
+  const double a_start = exp(log_a_start);
+  const double a_end = exp(log_a_end);
+  return cosmology_get_delta_time_from_scale_factors(c, a_start, a_end);
 }
 
 /**
  * @brief Compute the cosmic time (in internal units) between two scale factors
+ *
+ * Only valid for a flat radiation-free Universe with constant dark energy
+ * equation of state
  *
  * @param c The current #cosmology.
  * @param a_start the starting scale factor
@@ -792,18 +792,15 @@ double cosmology_get_delta_time_from_scale_factors(const struct cosmology *c,
   if (a_end < a_start) error("a_end must be >= a_start");
 #endif
 
-  const double log_a_start = log(a_start);
-  const double log_a_end = log(a_end);
+  const double cosmo_ratio = c->Omega_lambda / c->Omega_m;
 
-  /* Time between a_begin and a_start */
-  const double t1 = interp_table(c->time_interp_table, log_a_start,
-                                 c->log_a_begin, c->log_a_end);
+  const double term_start = sqrt(a_start * a_start * a_start * cosmo_ratio);
+  const double term_end = sqrt(a_end * a_end * a_end * cosmo_ratio);
 
-  /* Time between a_begin and a_end */
-  const double t2 = interp_table(c->time_interp_table, log_a_end,
-                                 c->log_a_begin, c->log_a_end);
+  const double t_start = asinh(term_start);
+  const double t_end = asinh(term_end);
 
-  return t2 - t1;
+  return 0.6666666667 * (t_end - t_start) / (sqrt(c->Omega_lambda) * c->H0);
 }
 
 /**
