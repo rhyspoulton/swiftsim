@@ -1917,7 +1917,7 @@ void runner_do_extra_ghost(struct runner *r, struct cell *c, int timer) {
  * @param timer Are we timing this ?
  */
 void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
-#ifdef EULER_ENG_SPH
+#if defined(EULER_ENG_SPH) || defined(NAV_STOK_SPH)
 
           /* Recurse? */
   if (c->split) {
@@ -2685,7 +2685,6 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
         kick_part(p, xp, dt_kick_hydro, dt_kick_grav, dt_kick_therm,
                   dt_kick_corr, cosmo, hydro_props, entropy_floor, ti_begin,
                   ti_begin + ti_step / 2);
-
         /* Update the accelerations to be used in the drift for hydro */
         if (p->gpart != NULL) {
 #ifndef WITH_ENGINEERING
@@ -2852,7 +2851,6 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
           /* Reset the flag. Everything is back to normal from now on. */
           p->wakeup = time_bin_awake;
         }
-
 #ifdef SWIFT_DEBUG_CHECKS
         if (ti_begin + ti_step != ti_current)
           error(
@@ -2873,10 +2871,10 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
               cosmo, ti_begin + ti_step / 2, ti_end);
         } else {
 #ifdef WITH_ENGINEERING
-          dt_kick_hydro = (ti_end - (ti_begin + ti_step)) * time_base;
-          dt_kick_grav = (ti_end - (ti_begin + ti_step)) * time_base;
-          dt_kick_therm = (ti_end - (ti_begin + ti_step)) * time_base;
-          dt_kick_corr = (ti_end - (ti_begin + ti_step)) * time_base;
+          dt_kick_hydro = (ti_end - (ti_begin + ti_step / 2)) * time_base*2;
+          dt_kick_grav = (ti_end - (ti_begin + ti_step / 2)) * time_base*2;
+          dt_kick_therm = (ti_end - (ti_begin + ti_step / 2)) * time_base*2;
+          dt_kick_corr = (ti_end - (ti_begin + ti_step / 2)) * time_base*2;
 #else
           dt_kick_hydro = (ti_end - (ti_begin + ti_step / 2)) * time_base;
           dt_kick_grav = (ti_end - (ti_begin + ti_step / 2)) * time_base;
@@ -3054,7 +3052,6 @@ void runner_do_timestep(struct runner *r, struct cell *c, int timer) {
         if (ti_end != ti_current)
           error("Computing time-step of rogue particle.");
 #endif
-
         /* Get new time-step */
         const integertime_t ti_new_step = get_part_timestep(p, xp, e);
 

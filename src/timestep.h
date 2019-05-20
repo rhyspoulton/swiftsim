@@ -148,7 +148,6 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
 
   /* Final time-step is minimum of hydro and gravity */
   float new_dt = min3(new_dt_hydro, new_dt_cooling, new_dt_grav);
-
   /* Limit change in smoothing length */
 #ifdef WITH_ENGINEERING
   const float dt_h_change = FLT_MAX;
@@ -169,7 +168,6 @@ __attribute__((always_inline)) INLINE static integertime_t get_part_timestep(
 
   /* Limit timestep within the allowed range */
   new_dt = min(new_dt, e->dt_max);
-
   if (new_dt < e->dt_min)
     error("part (id=%lld) wants a time-step (%e) below dt_min (%e)", p->id,
           new_dt, e->dt_min);
