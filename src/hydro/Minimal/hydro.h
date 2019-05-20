@@ -595,10 +595,18 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   /* Compute the sound speed */
   const float soundspeed = gas_soundspeed_from_pressure(p->rho, pressure);
 
-  /* Compute the "grad h" term */
+  /* Compute the "grad h" term, assuming that
+   *
+   * + x_i = m_i
+   * + \tilde{x}_i = 1
+   * + y_i = rho_i
+   * + \tilde{y}_i = \tilde{n}_i = wcount
+   */
   const float rho_inv = 1.f / p->rho;
-  const float grad_h_term =
-      1.f / (1.f + hydro_dimension_inv * p->h * p->density.rho_dh * rho_inv);
+  const float common_factor = p->h / (hydro_dimension * p->density.wcount);
+  const float denominator = 1.f + common_factor * p->density.wcount_dh;
+  const float numerator = common_factor * p->density.rho_dh;
+  const float grad_h_term = 1.f - (1.f / p->mass) * numerator / denominator;
 
   /* Compute the Balsara switch */
   /* Pre-multiply in the AV factor; hydro_props are not passed to the iact
