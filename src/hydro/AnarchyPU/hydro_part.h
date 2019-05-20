@@ -110,6 +110,9 @@ struct part {
   /*! Particle pressure (weighted) */
   float pressure_bar;
 
+  /*! Velocity divergence based on number density, not mass weighted. */
+  float wcount_div_v;
+
   /* Store viscosity information in a separate struct. */
   struct {
 

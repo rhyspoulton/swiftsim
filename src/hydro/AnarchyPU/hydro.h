@@ -516,6 +516,8 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
 
   p->viscosity.div_v = 0.f;
   p->diffusion.laplace_u = 0.f;
+
+  p->wcount_div_v = 0.f;
 }
 
 /**
@@ -567,6 +569,10 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
   /* Finish calculation of the velocity divergence */
   p->viscosity.div_v *= h_inv_dim_plus_one * rho_inv * a_inv2;
   p->viscosity.div_v += cosmo->H * hydro_dimension;
+
+  /* Finish the calculation of the non-mass-weighted velocity divergence */
+  p->wcount_div_v *= h_inv_dim_plus_one * a_inv2 / p->density.wcount;
+  p->wcount_div_v += cosmo->H * hydro_dimension;
 }
 
 /**
@@ -692,6 +698,9 @@ __attribute__((always_inline)) INLINE static void hydro_part_has_no_neighbours(
   /* Probably not shocking, so this is safe to do */
   p->viscosity.div_v = 0.f;
   p->diffusion.laplace_u = 0.f;
+
+  /* Don't change the smoothing length please */
+  p->wcount_div_v = 0.f;
 }
 
 /**
@@ -887,7 +896,7 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   const float h_inv = 1.f / p->h;
 
   /* Predict smoothing length */
-  const float w1 = p->force.h_dt * h_inv * dt_drift;
+  const float w1 = (p->h * p->wcount_div_v) / (hydro_dimension * dt_drift);
   if (fabsf(w1) < 0.2f)
     p->h *= approx_expf(w1); /* 4th order expansion of exp(w) */
   else

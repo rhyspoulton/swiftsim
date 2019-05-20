@@ -89,6 +89,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   /* Now we need to compute the div terms */
   const float r_inv = 1.f / r;
+  /* CHANGE THIS */
+  const float faci_nomass = wi_dx * r_inv;
+  const float facj_nomass = wi_dx * r_inv;
   const float faci = mj * wi_dx * r_inv;
   const float facj = mi * wj_dx * r_inv;
 
@@ -100,6 +103,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   pi->viscosity.div_v -= faci * dvdr;
   pj->viscosity.div_v -= facj * dvdr;
+
+  pi->wcount_div_v -= faci_nomass * dvdr;
+  pj->wcount_djv_v -= facj_nomass * dvdr;
 
   /* Compute dv cross r */
   curlvr[0] = dv[1] * dx[2] - dv[2] * dx[1];
@@ -156,6 +162,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->density.wcount_dh -= (hydro_dimension * wi + ui * wi_dx);
 
   const float r_inv = 1.f / r;
+  const float faci_nomass = wi_dx * r_inv;
   const float faci = mj * wi_dx * r_inv;
 
   /* Compute dv dot r */
@@ -165,6 +172,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   const float dvdr = dv[0] * dx[0] + dv[1] * dx[1] + dv[2] * dx[2];
 
   pi->viscosity.div_v -= faci * dvdr;
+  pi->wcount_div_v -= faci_nomass * dvdr;
 
   /* Compute dv cross r */
   curlvr[0] = dv[1] * dx[2] - dv[2] * dx[1];
@@ -427,10 +435,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   /* Internal energy time derivative */
   pi->u_dt += du_dt_i * mj;
   pj->u_dt += du_dt_j * mi;
-
-  /* Get the time derivative for h. */
-  pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
-  pj->force.h_dt -= mi * dvdr * r_inv / rhoi * wj_dr;
 }
 
 /**
@@ -549,9 +553,6 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Internal energy time derivative */
   pi->u_dt += du_dt_i * mj;
-
-  /* Get the time derivative for h. */
-  pi->force.h_dt -= mj * dvdr * r_inv / rhoj * wi_dr;
 }
 
 /**
