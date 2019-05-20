@@ -202,6 +202,8 @@ void readArray(hid_t h_grp, const struct io_props props, size_t N,
     }
   }
 
+
+
   /* Copy temporary buffer to particle data */
   char* temp_c = (char*)temp;
   for (size_t i = 0; i < N; ++i)
@@ -354,12 +356,15 @@ void writeArray(const struct engine* e, hid_t grp, char* fileName,
  * @param Ngparts (output) The number of #gpart read.
  * @param Nstars (output) The number of #spart read.
  * @param Nblackholes (output) The number of #bpart read.
+ * @param Nboundary (output) The number of #part read with is_boundary (engineering only).
+ * @param Nfluid (output) The number of #part read without is_boundary (engineering only).
  * @param flag_entropy (output) 1 if the ICs contained Entropy in the
  * InternalEnergy field
  * @param with_hydro Are we reading gas particles ?
  * @param with_gravity Are we reading/creating #gpart arrays ?
  * @param with_stars Are we reading star particles ?
  * @param with_black_hole Are we reading black hole particles ?
+ * @param with_engineering_hydro Are we doing engineering SPH
  * @param cleanup_h Are we cleaning-up h-factors from the quantities we read?
  * @param cleanup_sqrt_a Are we cleaning-up the sqrt(a) factors in the Gadget
  * IC velocities?
@@ -378,12 +383,13 @@ void writeArray(const struct engine* e, hid_t grp, char* fileName,
 void read_ic_single(const char* fileName,
                     const struct unit_system* internal_units, double dim[3],
                     struct part** parts, struct gpart** gparts,
-                    struct spart** sparts, struct bpart** bparts, size_t* Ngas,
-                    size_t* Ngparts, size_t* Nstars, size_t* Nblackholes,
-                    int* flag_entropy, int with_hydro, int with_gravity,
-                    int with_stars, int with_black_holes, int cleanup_h,
-                    int cleanup_sqrt_a, double h, double a, int n_threads,
-                    int dry_run) {
+                    struct spart** sparts, struct bpart** bparts, size_t* Ngas, size_t* Ngparts,
+                    size_t* Nstars, size_t* Nblackholes, size_t* Nboundary, size_t* Nfluid,
+                    int* flag_entropy, int with_hydro,
+                    int with_gravity, int with_stars, int with_black_holes,
+                    int with_engineering_hydro,
+                    int cleanup_h, int cleanup_sqrt_a, double h, double a,
+                    int n_threads, int dry_run){
 
   hid_t h_file = 0, h_grp = 0;
   /* GADGET has only cubic boxes (in cosmological mode) */
@@ -548,6 +554,15 @@ void read_ic_single(const char* fileName,
     bzero(*gparts, *Ngparts * sizeof(struct gpart));
   }
 
+  if (with_engineering_hydro) {
+    *Nboundary = N[swift_type_boundary];
+    *Nfluid = N[swift_type_fluid];
+    if (swift_memalign("parts", (void**)parts, part_align,
+                       (*Nboundary+*Nfluid) * sizeof(struct part)) != 0)
+      error("Error while allocating memory for SPH particles");
+    bzero(*parts, (*Nboundary+*Nfluid) * sizeof(struct part));
+  }
+
   /* message("Allocated %8.2f MB for particles.", *N * sizeof(struct part) /
    * (1024.*1024.)); */
 
@@ -604,10 +619,24 @@ void read_ic_single(const char* fileName,
         }
         break;
 
+     case swift_type_boundary:
+       if (with_engineering_hydro) {
+         Nparticles = *Nboundary;
+         hydro_read_particles(*parts, list, &num_fields);
+       }
+       break;
+
+      case swift_type_fluid:
+        if (with_engineering_hydro) {
+          Nparticles = *Nfluid;
+          hydro_read_particles( &(*parts)[*Nboundary], list, &num_fields);
+        }
+        break;
+
+
       default:
         message("Particle Type %d not yet supported. Particles ignored", ptype);
-    }
-
+      }
     /* Read everything */
     if (!dry_run)
       for (int i = 0; i < num_fields; ++i)
@@ -683,6 +712,7 @@ void write_output_single(struct engine* e, const char* baseName,
   const int with_cosmology = e->policy & engine_policy_cosmology;
   const int with_cooling = e->policy & engine_policy_cooling;
   const int with_temperature = e->policy & engine_policy_temperature;
+  const int with_engineering = e->policy & engine_policy_engineering;
 #ifdef HAVE_VELOCIRAPTOR
   const int with_stf = (e->policy & engine_policy_structure_finding) &&
                        (e->s->gpart_group_data != NULL);
@@ -692,9 +722,11 @@ void write_output_single(struct engine* e, const char* baseName,
 
   /* Number of particles currently in the arrays */
   const size_t Ntot = e->s->nr_gparts;
-  const size_t Ngas = e->s->nr_parts;
+  const size_t Ngas = e->s->nr_parts * ( with_engineering == 0);
   const size_t Nstars = e->s->nr_sparts;
   const size_t Nblackholes = e->s->nr_bparts;
+  const size_t Nboundary = 0;
+  const size_t Nfluid = (e->s->nr_parts) * (with_engineering != 0);
   // const size_t Nbaryons = Ngas + Nstars;
   // const size_t Ndm = Ntot > 0 ? Ntot - Nbaryons : 0;
 
@@ -702,7 +734,7 @@ void write_output_single(struct engine* e, const char* baseName,
   const size_t Ntot_written =
       e->s->nr_gparts - e->s->nr_inhibited_gparts - e->s->nr_extra_gparts;
   const size_t Ngas_written =
-      e->s->nr_parts - e->s->nr_inhibited_parts - e->s->nr_extra_parts;
+      (e->s->nr_parts - e->s->nr_inhibited_parts - e->s->nr_extra_parts) * (with_engineering == 0);
   const size_t Nstars_written =
       e->s->nr_sparts - e->s->nr_inhibited_sparts - e->s->nr_extra_sparts;
   const size_t Nblackholes_written =
@@ -713,9 +745,15 @@ void write_output_single(struct engine* e, const char* baseName,
       Ntot_written > 0 ? Ntot_written - Nbaryons_written : 0;
 
   /* Format things in a Gadget-friendly array */
-  long long N_total[swift_type_count] = {
-      (long long)Ngas_written,   (long long)Ndm_written,        0, 0,
-      (long long)Nstars_written, (long long)Nblackholes_written};
+  long long N_total[swift_type_count] = {(long long)Ngas_written,
+                                         (long long)Ndm_written,
+                                         0,
+                                         0,
+                                         (long long)Nstars_written,
+                                         (long long)Nblackholes_written,
+                                         (long long)Nboundary,
+                                         (long long)Nfluid
+                                         };
 
   /* File name */
   char fileName[FILENAME_BUFFER_SIZE];
@@ -1122,6 +1160,12 @@ void write_output_single(struct engine* e, const char* baseName,
         }
       } break;
 
+      case swift_type_fluid: {
+        N = Nfluid;
+        hydro_write_particles( parts, xparts, list, &num_fields);        
+
+      } break;
+
       default:
         error("Particle Type %d not yet supported. Aborting", ptype);
     }
@@ -1134,7 +1178,6 @@ void write_output_single(struct engine* e, const char* baseName,
       sprintf(field, "SelectOutput:%s_%s", list[i].name,
               part_type_names[ptype]);
       int should_write = parser_get_opt_param_int(params, field, 1);
-
       if (should_write)
         writeArray(e, h_grp, fileName, xmfFile, partTypeGroupName, list[i], N,
                    internal_units, snapshot_units);

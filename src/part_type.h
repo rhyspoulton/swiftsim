@@ -29,6 +29,8 @@ enum part_type {
   swift_type_dark_matter = 1,
   swift_type_stars = 4,
   swift_type_black_hole = 5,
+  swift_type_boundary = 6,
+  swift_type_fluid = 7,
   swift_type_count
 } __attribute__((packed));
 

@@ -1917,7 +1917,34 @@ void runner_do_extra_ghost(struct runner *r, struct cell *c, int timer) {
  * @param timer Are we timing this ?
  */
 void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
+#ifdef EULER_ENG_SPH
 
+          /* Recurse? */
+  if (c->split) {
+    for (int k = 0; k < 8; k++)
+      if (c->progeny[k] != NULL) runner_do_ghost(r, c->progeny[k], 0);
+  } else {
+    struct part *restrict parts = c->hydro.parts;
+    struct xpart *restrict xparts = c->hydro.xparts; 
+    const struct engine *e = r->e;
+    const struct cosmology *cosmo = e->cosmology;
+    const struct hydro_props *hydro_props = e->hydro_properties;
+    const double time_base = e->time_base;
+    for(int i = 0; i < c->hydro.count; i++){
+         struct part *p = &parts[i];
+         struct xpart *xp = &xparts[i];
+         double dt_alpha = get_timestep(p->time_bin, time_base);
+
+        /* As of here, particle force variables will be set. */
+
+        /* Compute variables required for the force loop */
+        hydro_prepare_force(p, xp, cosmo, hydro_props, dt_alpha);
+
+        /* Prepare the particle for the force loop over neighbours */
+        hydro_reset_acceleration(p);
+   }
+ }
+#else
   struct part *restrict parts = c->hydro.parts;
   struct xpart *restrict xparts = c->hydro.xparts;
   const struct engine *e = r->e;
@@ -2334,6 +2361,7 @@ void runner_do_ghost(struct runner *r, struct cell *c, int timer) {
   }
 
   if (timer) TIMER_TOC(timer_do_ghost);
+#endif
 }
 
 /**
@@ -2507,7 +2535,6 @@ void runner_do_unskip_mapper(void *map_data, int num_elements,
  * @param timer Are we timing this ?
  */
 void runner_do_drift_part(struct runner *r, struct cell *c, int timer) {
-
   TIMER_TIC;
 
   cell_drift_part(c, r->e, 0);
@@ -2572,6 +2599,11 @@ void runner_do_drift_bpart(struct runner *r, struct cell *c, int timer) {
  */
 void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
+
+#ifdef WITH_ENGINEERING
+    return;
+#else
+
   const struct engine *e = r->e;
   const struct cosmology *cosmo = e->cosmology;
   const struct hydro_props *hydro_props = e->hydro_properties;
@@ -2586,7 +2618,6 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   const int scount = c->stars.count;
   const integertime_t ti_current = e->ti_current;
   const double time_base = e->time_base;
-
   TIMER_TIC;
 
   /* Anything to do here? */
@@ -2657,10 +2688,12 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
 
         /* Update the accelerations to be used in the drift for hydro */
         if (p->gpart != NULL) {
-
+#ifndef WITH_ENGINEERING
+//TODO Need to fix lack of agrav in particles
           xp->a_grav[0] = p->gpart->a_grav[0];
           xp->a_grav[1] = p->gpart->a_grav[1];
           xp->a_grav[2] = p->gpart->a_grav[2];
+#endif
         }
       }
     }
@@ -2743,6 +2776,7 @@ void runner_do_kick1(struct runner *r, struct cell *c, int timer) {
   }
 
   if (timer) TIMER_TOC(timer_kick1);
+#endif
 }
 
 /**
@@ -2838,10 +2872,17 @@ void runner_do_kick2(struct runner *r, struct cell *c, int timer) {
           dt_kick_corr = cosmology_get_corr_kick_factor(
               cosmo, ti_begin + ti_step / 2, ti_end);
         } else {
+#ifdef WITH_ENGINEERING
+          dt_kick_hydro = (ti_end - (ti_begin + ti_step)) * time_base;
+          dt_kick_grav = (ti_end - (ti_begin + ti_step)) * time_base;
+          dt_kick_therm = (ti_end - (ti_begin + ti_step)) * time_base;
+          dt_kick_corr = (ti_end - (ti_begin + ti_step)) * time_base;
+#else
           dt_kick_hydro = (ti_end - (ti_begin + ti_step / 2)) * time_base;
           dt_kick_grav = (ti_end - (ti_begin + ti_step / 2)) * time_base;
           dt_kick_therm = (ti_end - (ti_begin + ti_step / 2)) * time_base;
           dt_kick_corr = (ti_end - (ti_begin + ti_step / 2)) * time_base;
+#endif
         }
 
         /* Finish the time-step with a second half-kick */

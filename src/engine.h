@@ -78,9 +78,10 @@ enum engine_policy {
   engine_policy_star_formation = (1 << 17),
   engine_policy_feedback = (1 << 18),
   engine_policy_black_holes = (1 << 19),
-  engine_policy_limiter = (1 << 20)
+  engine_policy_limiter = (1 << 20),
+  engine_policy_engineering = (1 << 21)
 };
-#define engine_maxpolicy 21
+#define engine_maxpolicy 22
 extern const char *engine_policy_names[engine_maxpolicy + 1];
 
 /**
