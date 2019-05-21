@@ -715,6 +715,10 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
     const struct hydro_props *hydro_props,
     const struct entropy_floor_properties *floor_props) {
 
+  /* Before predicting the internal energy, we need to convert our P_bar to
+   * a pre-drift weighted density */
+  float weighted_density = p->pressure_bar / p->u;
+
   /* Predict the internal energy */
   p->u += p->u_dt * dt_therm;
 
@@ -744,12 +748,16 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
     const float expf_approx =
         approx_expf(w2); /* 4th order expansion of exp(w) */
     p->rho *= expf_approx;
-    p->pressure_bar *= expf_approx;
+    weighted_density *= expf_approx;
   } else {
     const float expf_exact = expf(w2);
     p->rho *= expf_exact;
-    p->pressure_bar *= expf_exact;
+    weighted_density *= expf_exact;
   }
+
+  /* Now convert the weighted density back to our pressure_bar, using the
+   * drifted weighted density _and_ drifted u. */
+  p->pressure_bar = weighted_density * p->u;
 
   /* Compute the new sound speed */
   const float soundspeed = hydro_get_comoving_soundspeed(p);
