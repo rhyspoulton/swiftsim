@@ -220,7 +220,6 @@ hydro_get_comoving_soundspeed(const struct part *restrict p) {
   /* IDEAL GAS ONLY -- P-U does not work with generic EoS. */
 
   const float square_rooted = sqrtf(hydro_gamma * p->pressure_bar / p->rho);
-
   return square_rooted;
 }
 
@@ -411,6 +410,8 @@ hydro_set_drifted_physical_internal_energy(struct part *p,
   p->u = u / cosmo->a_factor_internal_energy;
 
   /* Now recompute the extra quantities */
+
+  // MATTHIEU: We probably want to update the smoothed pressure somehow here.
 
   /* Compute the sound speed */
   const float soundspeed = hydro_get_comoving_soundspeed(p);
@@ -829,6 +830,10 @@ __attribute__((always_inline)) INLINE static void hydro_reset_acceleration(
 __attribute__((always_inline)) INLINE static void hydro_reset_predicted_values(
     struct part *restrict p, const struct xpart *restrict xp) {
 
+  /* Ratio of the new internal energy to the one that was used to compute P_bar
+   */
+  const float u_ratio = xp->u_full / p->u;
+
   /* Re-set the predicted velocities */
   p->v[0] = xp->v_full[0];
   p->v[1] = xp->v_full[1];
@@ -836,6 +841,9 @@ __attribute__((always_inline)) INLINE static void hydro_reset_predicted_values(
 
   /* Re-set the entropy */
   p->u = xp->u_full;
+
+  /* Update the smoothed pressure accordingly */
+  p->pressure_bar *= u_ratio;
 
   /* Compute the sound speed */
   const float soundspeed = hydro_get_comoving_soundspeed(p);
@@ -873,17 +881,6 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   /* Predict the internal energy */
   p->u += p->u_dt * dt_therm;
 
-  /* Check against entropy floor */
-  const float floor_A = entropy_floor(p, cosmo, floor_props);
-  const float floor_u = gas_internal_energy_from_entropy(p->rho, floor_A);
-
-  /* Check against absolute minimum */
-  const float min_u =
-      hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy;
-
-  p->u = max(p->u, floor_u);
-  p->u = max(p->u, min_u);
-
   const float h_inv = 1.f / p->h;
 
   /* Predict smoothing length */
@@ -908,12 +905,30 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
     weighted_density *= expf_exact;
   }
 
+  /* We now have a drifted density, weighted density, and u.
+   * Check against entropy floor using all the drifted quantities.
+   * We want to ensure that u is above the limit *and* that P_bar and u
+   * are consistently drifted.
+   * Note however, that if we were to recompute P_bar, we might get a
+   * different value if any of the neighbours has changed. */
+  const float floor_A = entropy_floor(p, cosmo, floor_props);
+  const float floor_u = gas_internal_energy_from_entropy(
+      one_over_gamma_minus_one * weighted_density, floor_A);
+
+  /* Check against absolute minimum */
+  const float min_u =
+      hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy;
+
+  p->u = max(p->u, floor_u);
+  p->u = max(p->u, min_u);
+
   /* Now convert the weighted density back to our pressure_bar, using the
    * drifted weighted density _and_ drifted u. */
   p->pressure_bar = weighted_density * p->u;
 
   /* Compute the new sound speed */
-  const float soundspeed = hydro_get_comoving_soundspeed(p);
+  const float soundspeed =
+      gas_sound_speed_from_pressure(p->rho, p->pressure_bar);
 
   p->force.soundspeed = soundspeed;
 }
@@ -966,7 +981,8 @@ __attribute__((always_inline)) INLINE static void hydro_kick_extra(
 
   /* Check against entropy floor */
   const float floor_A = entropy_floor(p, cosmo, floor_props);
-  const float floor_u = gas_internal_energy_from_entropy(p->rho, floor_A);
+  const float floor_u = gas_internal_energy_from_entropy(
+      one_over_gamma_minus_one * p->pressure_bar / xp->u_full, floor_A);
 
   /* Check against absolute minimum */
   const float min_u =
