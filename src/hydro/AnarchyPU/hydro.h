@@ -928,7 +928,7 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
 
   /* Compute the new sound speed */
   const float soundspeed =
-      gas_sound_speed_from_pressure(p->rho, p->pressure_bar);
+      gas_soundspeed_from_pressure(p->rho, p->pressure_bar);
 
   p->force.soundspeed = soundspeed;
 }
