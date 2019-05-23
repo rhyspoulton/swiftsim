@@ -376,13 +376,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Construct the full viscosity term */
   const float rho_ij = rhoi + rhoj;
-  const float alpha =
-      pi->viscosity.alpha * balsara_i + pj->viscosity.alpha * balsara_j;
-  const float visc = -0.5f * alpha * v_sig * mu_ij / rho_ij;
+  const float alpha = pi->viscosity.alpha + pj->viscosity.alpha;
+  const float visc =
+      -0.25f * alpha * v_sig * mu_ij * (balsara_i + balsara_j) / rho_ij;
 
   /* Convolve with the kernel */
-  const float visc_acc_term =
-      0.5f * visc * (wi_dr * pi->force.f + wj_dr * pj->force.f) * r_inv;
+  const float visc_acc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
 
   /* SPH acceleration term */
   const float sph_acc_term =
@@ -508,13 +507,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Construct the full viscosity term */
   const float rho_ij = rhoi + rhoj;
-  const float alpha =
-      pi->viscosity.alpha * balsara_i + pj->viscosity.alpha * balsara_j;
-  const float visc = -0.5f * alpha * v_sig * mu_ij / rho_ij;
+  const float alpha = pi->viscosity.alpha + pj->viscosity.alpha;
+  const float visc =
+      -0.25f * alpha * v_sig * mu_ij * (balsara_i + balsara_j) / rho_ij;
 
   /* Convolve with the kernel */
-  const float visc_acc_term =
-      0.5f * visc * (wi_dr * pi->force.f + wj_dr * pj->force.f) * r_inv;
+  const float visc_acc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
 
   /* SPH acceleration term */
   const float sph_acc_term =
