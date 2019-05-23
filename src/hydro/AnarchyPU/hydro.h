@@ -913,7 +913,7 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
    * different value if any of the neighbours has changed. */
   const float floor_A = entropy_floor(p, cosmo, floor_props);
   const float floor_u = gas_internal_energy_from_entropy(
-      one_over_gamma_minus_one * weighted_density, floor_A);
+      hydro_one_over_gamma_minus_one * weighted_density, floor_A);
 
   /* Check against absolute minimum */
   const float min_u =
@@ -982,7 +982,7 @@ __attribute__((always_inline)) INLINE static void hydro_kick_extra(
   /* Check against entropy floor */
   const float floor_A = entropy_floor(p, cosmo, floor_props);
   const float floor_u = gas_internal_energy_from_entropy(
-      one_over_gamma_minus_one * p->pressure_bar / xp->u_full, floor_A);
+      hydro_one_over_gamma_minus_one * p->pressure_bar / xp->u_full, floor_A);
 
   /* Check against absolute minimum */
   const float min_u =
