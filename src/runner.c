@@ -3994,6 +3994,9 @@ void *runner_main(void *data) {
     /* Wait at the barrier. */
     engine_barrier(e);
 
+    /* Can we go home yet? */
+    if (e->step_props & engine_step_prop_done) break;
+
     /* Re-set the pointer to the previous task, as there is none. */
     struct task *t = NULL;
     struct task *prev = NULL;

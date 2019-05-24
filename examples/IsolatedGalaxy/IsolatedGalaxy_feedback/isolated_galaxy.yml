@@ -108,7 +108,7 @@ EAGLEEntropyFloor:
   Cool_temperature_norm_K:        8000       # Temperature of the EAGLE Cool limiter entropy floor at the density threshold expressed in Kelvin.
   Cool_gamma_effective:           1.         # Slope the of the EAGLE Cool limiter entropy floor
 
-# EAGLE feedback model
+# EAGLE feedback model with constant feedback energy fraction
 EAGLEFeedback:
   use_SNII_feedback:                1               # Global switch for SNII thermal (stochastic) feedback.
   use_SNIa_feedback:                1               # Global switch for SNIa thermal (continuous) feedback.
