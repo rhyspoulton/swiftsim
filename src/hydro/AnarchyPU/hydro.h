@@ -597,6 +597,9 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_gradient(
   /* Compute the norm of div v */
   const float abs_div_v = fabsf(p->viscosity.div_v);
 
+  /* Compute the 'real' pressure for the EoM */
+  const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
+
   /* Compute the sound speed -- see theory section for justification */
   const float soundspeed = hydro_get_comoving_soundspeed(p);
 
@@ -614,6 +617,7 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_gradient(
   p->force.f = grad_h_term;
   p->force.soundspeed = soundspeed;
   p->force.balsara = balsara;
+  p->force.pressure = pressure;
 }
 
 /**
@@ -840,7 +844,11 @@ __attribute__((always_inline)) INLINE static void hydro_reset_predicted_values(
   /* Compute the sound speed */
   const float soundspeed = hydro_get_comoving_soundspeed(p);
 
+  /* Compute the new 'real' pressure */
+  const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
+
   p->force.soundspeed = soundspeed;
+  p->force.pressure = pressure;
 }
 
 /**
@@ -916,7 +924,11 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   const float soundspeed =
       gas_soundspeed_from_pressure(p->rho, p->pressure_bar);
 
+  /* Compute the new 'real' pressure */
+  const float pressure = gas_pressure_from_internal_energy(p->rho, p->u);
+
   p->force.soundspeed = soundspeed;
+  p->force.pressure = pressure;
 }
 
 /**

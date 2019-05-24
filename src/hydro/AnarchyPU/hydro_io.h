@@ -94,7 +94,8 @@ INLINE static void convert_part_pos(const struct engine* e,
   }
 }
 
-INLINE static void convert_part_f_i(const struct engine* const struct part* p,
+INLINE static void convert_part_f_i(const struct engine* e,
+                                    const struct part* p,
                                     const struct xpart* xp, float* ret) {
   ret[0] = p->force.f;
 }

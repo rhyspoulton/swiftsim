@@ -188,6 +188,9 @@ struct part {
       /*! Balsara switch */
       float balsara;
 
+      /*! (Real) pressure */
+      float pressure;
+
     } force;
   };
 
