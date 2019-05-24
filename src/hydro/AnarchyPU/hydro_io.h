@@ -94,6 +94,11 @@ INLINE static void convert_part_pos(const struct engine* e,
   }
 }
 
+INLINE static void convert_part_f_i(const struct engine* const struct part* p,
+                                    const struct xpart* xp, float* ret) {
+  ret[0] = p->force.f;
+}
+
 INLINE static void convert_part_vel(const struct engine* e,
                                     const struct part* p,
                                     const struct xpart* xp, float* ret) {
@@ -162,7 +167,7 @@ INLINE static void hydro_write_particles(const struct part* parts,
                                          struct io_props* list,
                                          int* num_fields) {
 
-  *num_fields = 12;
+  *num_fields = 13;
 
   /* List what we want to write */
   list[0] = io_make_output_field_convert_part("Coordinates", DOUBLE, 3,
@@ -194,6 +199,8 @@ INLINE static void hydro_write_particles(const struct part* parts,
   list[11] = io_make_output_field_convert_part("Diffusion", FLOAT, 1,
                                                UNIT_CONV_NO_UNITS, parts,
                                                xparts, convert_diffusion);
+  list[12] = io_make_output_field_convert_part(
+      "F_i", FLOAT, 1, UNIT_CONV_NO_UNITS, parts, xparts, convert_part_f_i);
 }
 
 /**
