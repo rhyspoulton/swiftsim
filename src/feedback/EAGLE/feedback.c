@@ -112,9 +112,11 @@ double eagle_feedback_energy_fraction(const struct spart* sp,
   const double rho_birth = sp->birth_density;
   double n_birth = rho_birth * props->rho_to_n_cgs;
 
+  if (n_birth < 1e-6) message("Birth density is < 1e-6! %e", n_birth);
+
   /* Calculate f_E */
   const double Z_term = pow(max(Z_smooth, 1e-6) / Z_0, n_Z);
-  const double n_term = pow(max(n_birth, 1e-6) / n_0, -n_n);
+  const double n_term = pow(n_birth / n_0, -n_n);
   const double denonimator = 1. + Z_term * n_term;
 
   return f_E_min + (f_E_max - f_E_min) / denonimator;
@@ -141,13 +143,13 @@ INLINE static void compute_SNII_feedback(
   const double SNII_wind_delay = feedback_props->SNII_wind_delay;
 
   /* Are we doing feedback this step? */
-  if (star_age <= SNII_wind_delay && (star_age + dt) > SNII_wind_delay) {
+  if (star_age <= SNII_wind_delay && (star_age +  dt) > SNII_wind_delay) {
 
     if (sp->f_E != -1.f) {
-#ifdef SWIFT_DEBUG_CHECKS
+      //#ifdef SWIFT_DEBUG_CHECKS
       message("Star has already done feedback! sp->id=%lld age=%e d=%e", sp->id,
               star_age, dt);
-#endif
+      //#endif
       return;
     }
 
@@ -180,6 +182,9 @@ INLINE static void compute_SNII_feedback(
       prob = 1.;
       delta_u = f_E * E_SNe * N_SNe / ngb_gas_mass;
     }
+
+    if ( f_E < 0.)
+      error("f_E is negative after calculation! f_E=%f sp->id=%lld", f_E, sp->id);
 
     /* Store all of this in the star for delivery onto the gas */
     sp->f_E = f_E;

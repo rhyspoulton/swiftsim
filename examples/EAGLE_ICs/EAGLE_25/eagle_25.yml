@@ -53,8 +53,9 @@ SPH:
 
 Scheduler:
   max_top_level_cells:   16
-  cell_split_size:       100
+  #cell_split_size:       100
   tasks_per_cell:        5
+  links_per_tasks:       500
 
 Restarts:
   delta_hours:  1.0
