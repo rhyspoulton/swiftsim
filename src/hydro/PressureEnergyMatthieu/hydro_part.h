@@ -108,48 +108,48 @@ struct part {
   /*! Time derivative of the internal energy. */
   float u_dt;
 
-  float rho; // ONLY USED FOR VISCOSITY!!!
-  
+  float rho;  // ONLY USED FOR VISCOSITY!!!
+
   float P_bar;
 
   float P_bar_dh;
 
   /* Store density/force specific stuff. */
-  //union {
+  // union {
 
-    /**
-     * @brief Structure for the variables only used in the density loop over
-     * neighbours.
-     *
-     * Quantities in this sub-structure should only be accessed in the density
-     * loop over neighbours and the ghost task.
-     */
-    struct {
+  /**
+   * @brief Structure for the variables only used in the density loop over
+   * neighbours.
+   *
+   * Quantities in this sub-structure should only be accessed in the density
+   * loop over neighbours and the ghost task.
+   */
+  struct {
 
-      /*! Neighbour number count. */
-      float wcount;
+    /*! Neighbour number count. */
+    float wcount;
 
-      /*! Derivative of the neighbour number with respect to h. */
-      float wcount_dh;
+    /*! Derivative of the neighbour number with respect to h. */
+    float wcount_dh;
 
-    } density;
+  } density;
 
-    /**
-     * @brief Structure for the variables only used in the force loop over
-     * neighbours.
-     *
-     * Quantities in this sub-structure should only be accessed in the force
-     * loop over neighbours and the ghost, drift and kick tasks.
-     */
-    struct {
+  /**
+   * @brief Structure for the variables only used in the force loop over
+   * neighbours.
+   *
+   * Quantities in this sub-structure should only be accessed in the force
+   * loop over neighbours and the ghost, drift and kick tasks.
+   */
+  struct {
 
-      /*! Particle signal velocity */
-      float v_sig;
+    /*! Particle signal velocity */
+    float v_sig;
 
-      /*! Time derivative of smoothing length  */
-      float h_dt;
+    /*! Time derivative of smoothing length  */
+    float h_dt;
 
-    } force;
+  } force;
   //};
 
   /* Chemistry information */

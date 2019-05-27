@@ -112,8 +112,9 @@ hydro_get_drifted_physical_internal_energy(const struct part *restrict p,
 __attribute__((always_inline)) INLINE static float hydro_get_comoving_pressure(
     const struct part *restrict p) {
 
-  error("MATTHIEU"); return 0.f;
-  //return gas_pressure_from_internal_energy(p->rho, p->u);
+  error("MATTHIEU");
+  return 0.f;
+  // return gas_pressure_from_internal_energy(p->rho, p->u);
 }
 
 /**
@@ -128,8 +129,9 @@ __attribute__((always_inline)) INLINE static float hydro_get_comoving_pressure(
 __attribute__((always_inline)) INLINE static float hydro_get_physical_pressure(
     const struct part *restrict p, const struct cosmology *cosmo) {
 
-  error("MATTHIEU"); return 0.f;
-  //return cosmo->a_factor_pressure *
+  error("MATTHIEU");
+  return 0.f;
+  // return cosmo->a_factor_pressure *
   //       gas_pressure_from_internal_energy(p->rho, p->u);
 }
 
@@ -142,7 +144,7 @@ __attribute__((always_inline)) INLINE static float hydro_get_physical_pressure(
  */
 __attribute__((always_inline)) INLINE static float hydro_get_comoving_entropy(
     const struct part *restrict p, const struct xpart *restrict xp) {
-  
+
   return gas_entropy_from_internal_energy(p->P_bar / xp->u_full, xp->u_full);
 }
 
@@ -158,11 +160,12 @@ __attribute__((always_inline)) INLINE static float hydro_get_physical_entropy(
     const struct part *restrict p, const struct xpart *restrict xp,
     const struct cosmology *cosmo) {
 
-  error("MATTHIEU"); return 0.f;
-  
+  error("MATTHIEU");
+  return 0.f;
+
   /* Note: no cosmological conversion required here with our choice of
    * coordinates. */
-  //return gas_entropy_from_internal_energy(p->rho, xp->u_full);
+  // return gas_entropy_from_internal_energy(p->rho, xp->u_full);
 }
 
 /**
@@ -174,9 +177,10 @@ __attribute__((always_inline)) INLINE static float hydro_get_physical_entropy(
 __attribute__((always_inline)) INLINE static float
 hydro_get_drifted_comoving_entropy(const struct part *restrict p) {
 
-  error("MATTHIEU"); return 0.f;
-  
-  //return gas_entropy_from_internal_energy(p->rho, p->u);
+  error("MATTHIEU");
+  return 0.f;
+
+  // return gas_entropy_from_internal_energy(p->rho, p->u);
 }
 
 /**
@@ -190,11 +194,12 @@ __attribute__((always_inline)) INLINE static float
 hydro_get_drifted_physical_entropy(const struct part *restrict p,
                                    const struct cosmology *cosmo) {
 
-  error("MATTHIEU"); return 0.f;
-  
+  error("MATTHIEU");
+  return 0.f;
+
   /* Note: no cosmological conversion required here with our choice of
    * coordinates. */
-  //return gas_entropy_from_internal_energy(p->rho, p->u);
+  // return gas_entropy_from_internal_energy(p->rho, p->u);
 }
 
 /**
@@ -205,9 +210,10 @@ hydro_get_drifted_physical_entropy(const struct part *restrict p,
 __attribute__((always_inline)) INLINE static float
 hydro_get_comoving_soundspeed(const struct part *restrict p) {
 
-  error("MATTHIEU"); return 0.f;
-  
-  //return p->force.soundspeed;
+  error("MATTHIEU");
+  return 0.f;
+
+  // return p->force.soundspeed;
 }
 
 /**
@@ -220,8 +226,9 @@ __attribute__((always_inline)) INLINE static float
 hydro_get_physical_soundspeed(const struct part *restrict p,
                               const struct cosmology *cosmo) {
 
-  error("MATTHIEU"); return 0.f;
-  //return cosmo->a_factor_sound_speed * p->force.soundspeed;
+  error("MATTHIEU");
+  return 0.f;
+  // return cosmo->a_factor_sound_speed * p->force.soundspeed;
 }
 
 /**
@@ -232,9 +239,10 @@ hydro_get_physical_soundspeed(const struct part *restrict p,
 __attribute__((always_inline)) INLINE static float hydro_get_comoving_density(
     const struct part *restrict p) {
 
-  error("MATTHIEU"); return 0.f;
-  
-  //return p->rho;
+  error("MATTHIEU");
+  return 0.f;
+
+  // return p->rho;
 }
 
 /**
@@ -246,9 +254,10 @@ __attribute__((always_inline)) INLINE static float hydro_get_comoving_density(
 __attribute__((always_inline)) INLINE static float hydro_get_physical_density(
     const struct part *restrict p, const struct cosmology *cosmo) {
 
-  error("MATTHIEU"); return 0.f;
-  
-  //return cosmo->a3_inv * p->rho;
+  error("MATTHIEU");
+  return 0.f;
+
+  // return cosmo->a3_inv * p->rho;
 }
 
 /**
@@ -305,7 +314,9 @@ __attribute__((always_inline)) INLINE static void hydro_get_drifted_velocities(
 __attribute__((always_inline)) INLINE static float
 hydro_get_comoving_internal_energy_dt(const struct part *restrict p) {
 
-  return p->u_dt;
+  error("MATTHIEU");
+  return 0.f;
+  // return p->u_dt;
 }
 
 /**
@@ -320,7 +331,9 @@ __attribute__((always_inline)) INLINE static float
 hydro_get_physical_internal_energy_dt(const struct part *restrict p,
                                       const struct cosmology *cosmo) {
 
-  return p->u_dt * cosmo->a_factor_internal_energy;
+  error("MATTHIEU");
+  return 0.f;
+  // return p->u_dt * cosmo->a_factor_internal_energy;
 }
 
 /**
@@ -335,7 +348,8 @@ hydro_get_physical_internal_energy_dt(const struct part *restrict p,
 __attribute__((always_inline)) INLINE static void
 hydro_set_comoving_internal_energy_dt(struct part *restrict p, float du_dt) {
 
-  p->u_dt = du_dt;
+  error("MATTHIEU");
+  // p->u_dt = du_dt;
 }
 
 /**
@@ -351,8 +365,8 @@ __attribute__((always_inline)) INLINE static void
 hydro_set_physical_internal_energy_dt(struct part *restrict p,
                                       const struct cosmology *cosmo,
                                       float du_dt) {
-
-  p->u_dt = du_dt / cosmo->a_factor_internal_energy;
+  error("MATTHIEU");
+  // p->u_dt = du_dt / cosmo->a_factor_internal_energy;
 }
 
 /**
@@ -368,10 +382,10 @@ __attribute__((always_inline)) INLINE static void hydro_set_physical_entropy(
     const float entropy) {
 
   error("MATTHIEU");
-  
+
   /* Note there is no conversion from physical to comoving entropy */
-  //const float comoving_entropy = entropy;
-  //xp->u_full = gas_internal_energy_from_entropy(p->rho, comoving_entropy);
+  // const float comoving_entropy = entropy;
+  // xp->u_full = gas_internal_energy_from_entropy(p->rho, comoving_entropy);
 }
 
 /**
@@ -387,7 +401,7 @@ hydro_set_physical_internal_energy(struct part *p, struct xpart *xp,
                                    const struct cosmology *cosmo,
                                    const float u) {
   error("MATTHIEU");
-  //xp->u_full = u / cosmo->a_factor_internal_energy;
+  // xp->u_full = u / cosmo->a_factor_internal_energy;
 }
 
 /**
@@ -403,15 +417,15 @@ hydro_set_drifted_physical_internal_energy(struct part *p,
                                            const float u) {
 
   error("MATTHIEU");
-  //p->u = u / cosmo->a_factor_internal_energy;
+  // p->u = u / cosmo->a_factor_internal_energy;
 
   /* Now recompute the extra quantities */
 
   /* Compute the sound speed */
-  //const float soundspeed = hydro_get_comoving_soundspeed(p);
+  // const float soundspeed = hydro_get_comoving_soundspeed(p);
 
   /* Update variables. */
-  //p->force.soundspeed = soundspeed;
+  // p->force.soundspeed = soundspeed;
 }
 
 /**
@@ -488,7 +502,7 @@ __attribute__((always_inline)) INLINE static void hydro_init_part(
   p->density.wcount_dh = 0.f;
 
   p->rho = 0.f;
-  
+
   p->P_bar = 0.f;
   p->P_bar_dh = 0.f;
 }
@@ -520,16 +534,16 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
   p->density.wcount_dh -= hydro_dimension * kernel_root;
 
   p->rho += kernel_root * p->mass;
-  
+
   p->P_bar += kernel_root * p->mass * p->u;
   p->P_bar_dh -= hydro_dimension * kernel_root * p->mass * p->u;
-  
+
   /* Finish the calculation by inserting the missing h-factors */
   p->density.wcount *= h_inv_dim;
   p->density.wcount_dh *= h_inv_dim_plus_one;
 
   p->rho *= h_inv_dim;
-  
+
   p->P_bar *= h_inv_dim;
   p->P_bar_dh *= h_inv_dim_plus_one;
 }
@@ -643,8 +657,30 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
     const struct hydro_props *hydro_props,
     const struct entropy_floor_properties *floor_props) {
 
+  const float old_u = p->u;
+  const float h_inv = 1.f / p->h;
+
   /* Predict the internal energy */
   p->u += p->u_dt * dt_therm;
+
+  /* Predict smoothing length */
+  const float w1 = p->force.h_dt * h_inv * dt_drift;
+  if (fabsf(w1) < 0.2f)
+    p->h *= approx_expf(w1); /* 4th order expansion of exp(w) */
+  else
+    p->h *= expf(w1);
+
+  /* Predict density */
+  const float w2 = -hydro_dimension * w1;
+  if (fabsf(w2) < 0.2f) {
+    p->rho *= approx_expf(w2); /* 4th order expansion of exp(w) */
+    p->P_bar *= approx_expf(w2);
+  } else {
+    p->rho *= expf(w2);
+    p->P_bar *= expf(w2);
+  }
+
+  p->P_bar *= p->u / old_u;
 
   /* /\* Check against entropy floor *\/ */
   /* const float floor_A = entropy_floor(p, cosmo, floor_props); */
@@ -652,26 +688,13 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
 
   /* /\* Check against absolute minimum *\/ */
   /* const float min_u = */
-  /*     hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy; */
+  /*     hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy;
+   */
 
   /* p->u = max(p->u, floor_u); */
   /* p->u = max(p->u, min_u); */
 
   /* const float h_inv = 1.f / p->h; */
-
-  /* /\* Predict smoothing length *\/ */
-  /* const float w1 = p->force.h_dt * h_inv * dt_drift; */
-  /* if (fabsf(w1) < 0.2f) */
-  /*   p->h *= approx_expf(w1); /\* 4th order expansion of exp(w) *\/ */
-  /* else */
-  /*   p->h *= expf(w1); */
-
-  /* /\* Predict density *\/ */
-  /* const float w2 = -hydro_dimension * w1; */
-  /* if (fabsf(w2) < 0.2f) */
-  /*   p->rho *= approx_expf(w2); /\* 4th order expansion of exp(w) *\/ */
-  /* else */
-  /*   p->rho *= expf(w2); */
 }
 
 /**
@@ -723,7 +746,8 @@ __attribute__((always_inline)) INLINE static void hydro_kick_extra(
 
   /* /\* Check against absolute minimum *\/ */
   /* const float min_u = */
-  /*     hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy; */
+  /*     hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy;
+   */
 
   /* /\* Take highest of both limits *\/ */
   /* const float energy_min = max(min_u, floor_u); */
@@ -759,7 +783,8 @@ __attribute__((always_inline)) INLINE static void hydro_convert_quantities(
 
   /* /\* Apply the minimal energy limit *\/ */
   /* const float min_comoving_energy = */
-  /*     hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy; */
+  /*     hydro_props->minimal_internal_energy / cosmo->a_factor_internal_energy;
+   */
   /* if (xp->u_full < min_comoving_energy) { */
   /*   xp->u_full = min_comoving_energy; */
   /*   p->u = min_comoving_energy; */
@@ -770,7 +795,8 @@ __attribute__((always_inline)) INLINE static void hydro_convert_quantities(
   /* const float pressure = gas_pressure_from_internal_energy(p->rho, p->u); */
 
   /* /\* Compute the sound speed *\/ */
-  /* const float soundspeed = gas_soundspeed_from_internal_energy(p->rho, p->u); */
+  /* const float soundspeed = gas_soundspeed_from_internal_energy(p->rho, p->u);
+   */
 
   /* p->force.pressure = pressure; */
   /* p->force.soundspeed = soundspeed; */

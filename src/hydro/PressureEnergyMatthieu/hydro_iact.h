@@ -73,7 +73,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   /* Get the internal energies */
   const float ui = pi->u;
   const float uj = pj->u;
-  
+
   /* Compute density of pi. */
   const float hi_inv = 1.f / hi;
   const float r_over_hi = r * hi_inv;
@@ -83,10 +83,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pi->density.wcount_dh -= (hydro_dimension * wi + r_over_hi * wi_dx);
 
   pi->rho += mj * wi;
-  
+
   pi->P_bar += mj * uj * wi;
   pi->P_bar_dh -= mj * uj * (hydro_dimension * wi + r_over_hi * wi_dx);
-  
+
   /* Compute density of pj. */
   const float hj_inv = 1.f / hj;
   const float r_over_hj = r * hj_inv;
@@ -96,7 +96,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   pj->density.wcount_dh -= (hydro_dimension * wj + r_over_hj * wj_dx);
 
   pj->rho += mi * wj;
-  
+
   pj->P_bar += mi * ui * wj;
   pj->P_bar_dh -= mi * ui * (hydro_dimension * wj + r_over_hj * wj_dx);
 }
@@ -131,7 +131,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
 
   /* Get the internal energies */
   const float uj = pj->u;
-  
+
   /* Get r. */
   const float r_inv = 1.0f / sqrtf(r2);
   const float r = r2 * r_inv;
@@ -144,7 +144,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   pi->density.wcount_dh -= (hydro_dimension * wi + r_over_hi * wi_dx);
 
   pi->rho += mj * wi;
-  
+
   pi->P_bar += mj * uj * wi;
   pi->P_bar_dh -= mj * uj * (hydro_dimension * wi + r_over_hi * wi_dx);
 }
@@ -195,7 +195,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   float wj, wj_dx;
   kernel_deval(r_over_hj, &wj, &wj_dx);
   const float wj_dr = hjd_inv * wj_dx;
-  
+
   /* Recover some data */
   const float mi = pi->mass;
   const float mj = pj->mass;
@@ -207,26 +207,30 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float P_bar_j = pj->P_bar;
   const float P_bar_dh_i = pi->P_bar_dh;
   const float P_bar_dh_j = pj->P_bar_dh;
-  const float n_i = pi->density.wcount; // Note this is legal since we don't have a union
-  const float n_j = pj->density.wcount; // Note this is legal since we don't have a union
+  const float n_i =
+      pi->density.wcount;  // Note this is legal since we don't have a union
+  const float n_j =
+      pj->density.wcount;  // Note this is legal since we don't have a union
   const float n_dh_i = pi->density.wcount_dh;
   const float n_dh_j = pj->density.wcount_dh;
-  
+
   /* Compute f_ij terms */
   const float bracket1_i = hi * P_bar_dh_i / (hydro_dimension * n_i);
   const float bracket1_j = hj * P_bar_dh_j / (hydro_dimension * n_j);
 
-  const float bracket2_i = 1.f + (hi *  n_dh_i / (hydro_dimension * n_i));
-  const float bracket2_j = 1.f + (hj *  n_dh_j / (hydro_dimension * n_j));
+  const float bracket2_i = 1.f + (hi * n_dh_i / (hydro_dimension * n_i));
+  const float bracket2_j = 1.f + (hj * n_dh_j / (hydro_dimension * n_j));
 
-  const float f_ij = 1.f - (1.f / (hydro_gamma_minus_one * mj * uj) ) * bracket1_i / bracket2_i;
-  const float f_ji = 1.f - (1.f / (hydro_gamma_minus_one * mi * ui) ) * bracket1_j / bracket2_j;
-  
+  const float f_ij =
+      1.f - (1.f / (hydro_gamma_minus_one * mj * uj)) * bracket1_i / bracket2_i;
+  const float f_ji =
+      1.f - (1.f / (hydro_gamma_minus_one * mi * ui)) * bracket1_j / bracket2_j;
+
   /* SPH acceleration term (we multiply by the mass at the end) */
   const float sph_acc_term =
-    hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj *
-    ((f_ij / P_bar_i) * wi_dr + (f_ji / P_bar_j) * wj_dr) * r_inv;
-  
+      hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj *
+      ((f_ij / P_bar_i) * wi_dr + (f_ji / P_bar_j) * wj_dr) * r_inv;
+
   /* Compute dv dot r. */
   const float dvdr = (pi->v[0] - pj->v[0]) * dx[0] +
                      (pi->v[1] - pj->v[1]) * dx[1] +
@@ -253,7 +257,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term;
-  
+
   /* Use the force Luke ! */
   pi->a_hydro[0] -= mj * acc * dx[0];
   pi->a_hydro[1] -= mj * acc * dx[1];
@@ -264,8 +268,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pj->a_hydro[2] += mi * acc * dx[2];
 
   /* Get the time derivative for u. */
-  const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj * (f_ij / P_bar_i) * dvdr * r_inv * wi_dr;
-  const float sph_du_term_j = hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj * (f_ji / P_bar_j) * dvdr * r_inv * wj_dr;
+  const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                              ui * uj * (f_ij / P_bar_i) * dvdr * r_inv * wi_dr;
+  const float sph_du_term_j = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                              ui * uj * (f_ji / P_bar_j) * dvdr * r_inv * wj_dr;
 
   /* Viscosity term */
   const float visc_du_term = 0.5f * visc_acc_term * dvdr_Hubble;
@@ -299,8 +305,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
     float r2, const float *dx, float hi, float hj, struct part *restrict pi,
     const struct part *restrict pj, float a, float H) {
 
-
-    /* Cosmological factors entering the EoMs */
+  /* Cosmological factors entering the EoMs */
   const float fac_mu = pow_three_gamma_minus_five_over_two(a);
   const float a2_Hubble = a * a * H;
 
@@ -323,7 +328,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   float wj, wj_dx;
   kernel_deval(r_over_hj, &wj, &wj_dx);
   const float wj_dr = hjd_inv * wj_dx;
-  
+
   /* Recover some data */
   const float mi = pi->mass;
   const float mj = pj->mass;
@@ -335,26 +340,30 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float P_bar_j = pj->P_bar;
   const float P_bar_dh_i = pi->P_bar_dh;
   const float P_bar_dh_j = pj->P_bar_dh;
-  const float n_i = pi->density.wcount; // Note this is legal since we don't have a union
-  const float n_j = pj->density.wcount; // Note this is legal since we don't have a union
+  const float n_i =
+      pi->density.wcount;  // Note this is legal since we don't have a union
+  const float n_j =
+      pj->density.wcount;  // Note this is legal since we don't have a union
   const float n_dh_i = pi->density.wcount_dh;
   const float n_dh_j = pj->density.wcount_dh;
-  
+
   /* Compute f_ij terms */
   const float bracket1_i = hi * P_bar_dh_i / (hydro_dimension * n_i);
   const float bracket1_j = hj * P_bar_dh_j / (hydro_dimension * n_j);
 
-  const float bracket2_i = 1.f + (hi *  n_dh_i / (hydro_dimension * n_i));
-  const float bracket2_j = 1.f + (hj *  n_dh_j / (hydro_dimension * n_j));
+  const float bracket2_i = 1.f + (hi * n_dh_i / (hydro_dimension * n_i));
+  const float bracket2_j = 1.f + (hj * n_dh_j / (hydro_dimension * n_j));
 
-  const float f_ij = 1.f - (1.f / (hydro_gamma_minus_one * mj * uj) ) * bracket1_i / bracket2_i;
-  const float f_ji = 1.f - (1.f / (hydro_gamma_minus_one * mi * ui) ) * bracket1_j / bracket2_j;
-  
+  const float f_ij =
+      1.f - (1.f / (hydro_gamma_minus_one * mj * uj)) * bracket1_i / bracket2_i;
+  const float f_ji =
+      1.f - (1.f / (hydro_gamma_minus_one * mi * ui)) * bracket1_j / bracket2_j;
+
   /* SPH acceleration term (we multiply by the mass at the end) */
   const float sph_acc_term =
-    hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj *
-    ((f_ij / P_bar_i) * wi_dr + (f_ji / P_bar_j) * wj_dr) * r_inv;
-  
+      hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj *
+      ((f_ij / P_bar_i) * wi_dr + (f_ji / P_bar_j) * wj_dr) * r_inv;
+
   /* Compute dv dot r. */
   const float dvdr = (pi->v[0] - pj->v[0]) * dx[0] +
                      (pi->v[1] - pj->v[1]) * dx[1] +
@@ -381,14 +390,15 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term;
-  
+
   /* Use the force Luke ! */
   pi->a_hydro[0] -= mj * acc * dx[0];
   pi->a_hydro[1] -= mj * acc * dx[1];
   pi->a_hydro[2] -= mj * acc * dx[2];
 
   /* Get the time derivative for u. */
-  const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one * ui * uj * (f_ij / P_bar_i) * dvdr * r_inv * wi_dr;
+  const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                              ui * uj * (f_ij / P_bar_i) * dvdr * r_inv * wi_dr;
 
   /* Viscosity term */
   const float visc_du_term = 0.5f * visc_acc_term * dvdr_Hubble;

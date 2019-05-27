@@ -174,12 +174,10 @@ INLINE static void hydro_write_particles(const struct part* parts,
   list[6] = io_make_output_field_convert_part("Entropy", FLOAT, 1,
                                               UNIT_CONV_ENTROPY_PER_UNIT_MASS,
                                               parts, xparts, convert_S);
-  list[7] = io_make_output_field("Pressure", FLOAT, 1,
-				 UNIT_CONV_PRESSURE,
-				 parts, P_bar);
-  list[8] = io_make_output_field("Density", FLOAT, 1,
-				 UNIT_CONV_DENSITY,
-				 parts, rho);
+  list[7] = io_make_output_field("Pressure", FLOAT, 1, UNIT_CONV_PRESSURE,
+                                 parts, P_bar);
+  list[8] =
+      io_make_output_field("Density", FLOAT, 1, UNIT_CONV_DENSITY, parts, rho);
 }
 
 /**
