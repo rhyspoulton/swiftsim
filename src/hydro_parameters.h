@@ -36,7 +36,7 @@
 #elif defined(HOPKINS_PE_SPH)
 #include "./hydro/PressureEntropy/hydro_parameters.h"
 #elif defined(HOPKINS_PU_SPH)
-#include "./hydro/PressureEnergy/hydro_parameters.h"
+#include "./hydro/PressureEnergyMatthieu/hydro_parameters.h"
 #elif defined(HOPKINS_PU_SPH_MONAGHAN)
 #include "./hydro/PressureEnergyMorrisMonaghanAV/hydro_parameters.h"
 #elif defined(DEFAULT_SPH)

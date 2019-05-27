@@ -30,7 +30,7 @@
 #elif defined(HOPKINS_PE_SPH)
 #include "./hydro/PressureEntropy/hydro_io.h"
 #elif defined(HOPKINS_PU_SPH)
-#include "./hydro/PressureEnergy/hydro_io.h"
+#include "./hydro/PressureEnergyMatthieu/hydro_io.h"
 #elif defined(HOPKINS_PU_SPH_MONAGHAN)
 #include "./hydro/PressureEnergyMorrisMonaghanAV/hydro_io.h"
 #elif defined(DEFAULT_SPH)

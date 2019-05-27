@@ -42,8 +42,8 @@
 #include "./hydro/PressureEntropy/hydro_iact.h"
 #define SPH_IMPLEMENTATION "Pressure-Entropy SPH (Hopkins 2013)"
 #elif defined(HOPKINS_PU_SPH)
-#include "./hydro/PressureEnergy/hydro.h"
-#include "./hydro/PressureEnergy/hydro_iact.h"
+#include "./hydro/PressureEnergyMatthieu/hydro.h"
+#include "./hydro/PressureEnergyMatthieu/hydro_iact.h"
 #define SPH_IMPLEMENTATION "Pressure-Energy SPH (Hopkins 2013)"
 #elif defined(HOPKINS_PU_SPH_MONAGHAN)
 #include "./hydro/PressureEnergyMorrisMonaghanAV/hydro.h"

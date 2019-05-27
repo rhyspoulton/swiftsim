@@ -53,7 +53,7 @@
 #include "./hydro/PressureEntropy/hydro_part.h"
 #define hydro_need_extra_init_loop 1
 #elif defined(HOPKINS_PU_SPH)
-#include "./hydro/PressureEnergy/hydro_part.h"
+#include "./hydro/PressureEnergyMatthieu/hydro_part.h"
 #define hydro_need_extra_init_loop 0
 #elif defined(HOPKINS_PU_SPH_MONAGHAN)
 #include "./hydro/PressureEnergyMorrisMonaghanAV/hydro_part.h"
