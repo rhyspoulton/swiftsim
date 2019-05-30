@@ -398,7 +398,7 @@ void runner_do_stars_ghost(struct runner *r, struct cell *c, int timer) {
           double star_age_end_of_step;
           if (with_cosmology) {
             star_age_end_of_step = cosmology_get_delta_time_from_scale_factors(
-									       cosmo, (double)sp->birth_scale_factor, cosmo->a);
+                cosmo, (double)sp->birth_scale_factor, cosmo->a);
           } else {
             star_age_end_of_step = (float)e->time - sp->birth_time;
           }

@@ -143,13 +143,13 @@ INLINE static void compute_SNII_feedback(
   const double SNII_wind_delay = feedback_props->SNII_wind_delay;
 
   /* Are we doing feedback this step? */
-  if (star_age <= SNII_wind_delay && (star_age +  dt) > SNII_wind_delay) {
+  if (star_age <= SNII_wind_delay && (star_age + dt) > SNII_wind_delay) {
 
     if (sp->f_E != -1.f) {
-      //#ifdef SWIFT_DEBUG_CHECKS
+#ifdef SWIFT_DEBUG_CHECKS
       message("Star has already done feedback! sp->id=%lld age=%e d=%e", sp->id,
               star_age, dt);
-      //#endif
+#endif
       return;
     }
 
@@ -183,8 +183,10 @@ INLINE static void compute_SNII_feedback(
       delta_u = f_E * E_SNe * N_SNe / ngb_gas_mass;
     }
 
-    if ( f_E < 0.)
-      error("f_E is negative after calculation! f_E=%f sp->id=%lld", f_E, sp->id);
+#ifdef SWIFT_DEBUG_CHECKS
+    if (f_E < feedback_props->f_E_min || f_E > feedback_props->f_E_max)
+      error("f_E is not in the valid range! f_E=%f sp->id=%lld", f_E, sp->id);
+#endif
 
     /* Store all of this in the star for delivery onto the gas */
     sp->f_E = f_E;
@@ -314,11 +316,16 @@ INLINE static void determine_bin_yield_SNII(
 INLINE static void evolve_SNIa(const float log10_min_mass,
                                const float log10_max_mass,
                                const struct feedback_props* props,
-                               struct spart* sp, float star_age_Gyr,
-                               float dt_Gyr) {
+                               struct spart* sp, double star_age_Gyr,
+                               double dt_Gyr) {
 
   /* Check if we're outside the mass range for SNIa */
   if (log10_min_mass >= props->log10_SNIa_max_mass_msun) return;
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (dt_Gyr < 0.) error("Negative time-step length!");
+  if (star_age_Gyr < 0.) error("Negative age!");
+#endif
 
   /* If the max mass is outside the mass range update it to be the maximum
    * and use updated values for the star's age and timestep in this function */
@@ -328,14 +335,9 @@ INLINE static void evolve_SNIa(const float log10_min_mass,
     const float max_mass = exp10f(props->log10_SNIa_max_mass_msun);
     const float lifetime_Gyr = lifetime_in_Gyr(max_mass, Z, props);
 
-    dt_Gyr = star_age_Gyr + dt_Gyr - lifetime_Gyr;
+    dt_Gyr = max(star_age_Gyr + dt_Gyr - lifetime_Gyr, 0.);
     star_age_Gyr = lifetime_Gyr;
   }
-
-#ifdef SWIFT_DEBUG_CHECKS
-  if (dt_Gyr < 0.) error("Negative time-step length!");
-  if (star_age_Gyr < 0.) error("Negative age!");
-#endif
 
   /* Compute the number of SNIa */
   const float num_SNIa = eagle_feedback_number_of_SNIa(
@@ -709,9 +711,9 @@ void compute_stellar_evolution(const struct feedback_props* feedback_props,
   /* Convert dt and stellar age from internal units to Gyr. */
   const double Gyr_in_cgs = 1e9 * 365. * 24. * 3600.;
   const double time_to_cgs = units_cgs_conversion_factor(us, UNIT_CONV_TIME);
-  const float conversion_factor = time_to_cgs / Gyr_in_cgs;
-  const float dt_Gyr = dt * conversion_factor;
-  const float star_age_Gyr = age * conversion_factor;
+  const double conversion_factor = time_to_cgs / Gyr_in_cgs;
+  const double dt_Gyr = dt * conversion_factor;
+  const double star_age_Gyr = age * conversion_factor;
 
   /* Get the metallicity */
   const float Z = sp->chemistry_data.metal_mass_fraction_total;
