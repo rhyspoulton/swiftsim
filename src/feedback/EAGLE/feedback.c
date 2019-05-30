@@ -112,8 +112,6 @@ double eagle_feedback_energy_fraction(const struct spart* sp,
   const double rho_birth = sp->birth_density;
   double n_birth = rho_birth * props->rho_to_n_cgs;
 
-  if (n_birth < 1e-6) message("Birth density is < 1e-6! %e", n_birth);
-
   /* Calculate f_E */
   const double Z_term = pow(max(Z_smooth, 1e-6) / Z_0, n_Z);
   const double n_term = pow(n_birth / n_0, -n_n);
