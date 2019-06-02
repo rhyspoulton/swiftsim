@@ -67,18 +67,17 @@ These quantities are computed every time-step.
 
 \subsubsection{Case of flat radiation-free Universe}
 
-In the case where $\Omega_k = \Omega_r = 0$ and $w(a) = -1$, the
-expression for $E(a)$ becomes a lot simple and the time since the Big
+In the case where $\Omega_k = \Omega_r = 0$, $w_0=-1$ and $w_a = 0$, the
+expression for $E(a)$ becomes a lot simpler and the time since the Big
 Bang (\ref{eq:flrw:age}) can be computed analytically:
 
 \begin{align}
   t_{\rm age} &= \frac{1}{H_0}\frac{2}{3\sqrt{\Omega_\Lambda}} \sinh^{-1}\left[\sqrt{\frac{a_{\rm age}^3 \Omega_\Lambda}{\Omega_m}}\right] \\
               &= \frac{1}{H_0}\frac{2}{3\sqrt{\Omega_\Lambda}}
-\ln\left[\sqrt{1+\frac{a_{\rm age}^3 \Omega_\Lambda}{\Omega_m}} + \sqrt{\frac{a_{\rm age}^3 \Omega_\Lambda}{\Omega_m}}\right].
+\log\left[\sqrt{1+\frac{a_{\rm age}^3 \Omega_\Lambda}{\Omega_m}} + \sqrt{\frac{a_{\rm age}^3 \Omega_\Lambda}{\Omega_m}}\right].
 \end{align}
-We use this expression in the subgrid code (e.g. to calculate stellar
-ages) as for small differences in $a_{\rm age}$ this will be more
-accurate than the table interpolation.
+We use this expression to test the accuracy of the interpolation
+tables used for the more general case.
 
 \subsubsection{Typical Values of the Cosmological Parameters}
 
