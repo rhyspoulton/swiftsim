@@ -644,10 +644,18 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
                              hydro_one_over_gamma_minus_one) /
                             (1.f + common_factor * p->density.wcount_dh);
 
+  /* Compute the pressures */
+  const float pressure_with_floor =
+      pressure_floor_get_comoving_pressure(p, p->pressure_bar);
+
+  const float pressure2 = pi->pressure_bar * pi->pressure_bar;
+
   /* Update variables. */
   p->force.f = grad_h_term;
   p->force.soundspeed = soundspeed;
   p->force.balsara = balsara;
+  p->force.pressure_ratio = pressure_with_floor / pressure2;
+
 }
 
 /**
@@ -759,6 +767,14 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   const float soundspeed = hydro_get_comoving_soundspeed(p);
 
   p->force.soundspeed = soundspeed;
+
+  /* Compute the pressure ratio */
+  const float pressure_with_floor =
+    pressure_floor_get_comoving_pressure(p, p->pressure_bar);
+
+  const float pressure2 = pi->pressure_bar * pi->pressure_bar;
+  p->force.pressure_ratio = pressure_with_floor / pressure2;
+
 }
 
 /**
