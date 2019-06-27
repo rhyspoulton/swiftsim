@@ -71,7 +71,7 @@ INLINE static void stars_write_particles(const struct spart *sparts,
                                          int *num_fields) {
 
   /* Say how much we want to write */
-  *num_fields = 9;
+  *num_fields = 8;
 
   /* List what we want to write */
   list[0] = io_make_output_field("Coordinates", DOUBLE, 3, UNIT_CONV_LENGTH,
