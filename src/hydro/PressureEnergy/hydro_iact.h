@@ -38,10 +38,10 @@
 #include "./hydro_parameters.h"
 
 /**
- * @brief Density interaction between two part*icles.
+ * @brief Density interaction between two particles.
  *
- * @param r2 Comoving square distance between the two part*icles.
- * @param dx Comoving vector separating both part*icles (pi - pj).
+ * @param r2 Comoving square distance between the two particles.
+ * @param dx Comoving vector separating both particles (pi - pj).
  * @param hi Comoving smoothing-length of part*icle i.
  * @param hj Comoving smoothing-length of part*icle j.
  * @param pi First part*icle.
@@ -120,10 +120,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 }
 
 /**
- * @brief Density interaction between two part*icles (non-symmetric).
+ * @brief Density interaction between two particles (non-symmetric).
  *
- * @param r2 Comoving square distance between the two part*icles.
- * @param dx Comoving vector separating both part*icles (pi - pj).
+ * @param r2 Comoving square distance between the two particles.
+ * @param dx Comoving vector separating both particles (pi - pj).
  * @param hi Comoving smoothing-length of part*icle i.
  * @param hj Comoving smoothing-length of part*icle j.
  * @param pi First part*icle.
@@ -180,10 +180,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
 }
 
 /**
- * @brief Force interaction between two part*icles.
+ * @brief Force interaction between two particles.
  *
- * @param r2 Comoving square distance between the two part*icles.
- * @param dx Comoving vector separating both part*icles (pi - pj).
+ * @param r2 Comoving square distance between the two particles.
+ * @param dx Comoving vector separating both particles (pi - pj).
  * @param hi Comoving smoothing-length of part*icle i.
  * @param hj Comoving smoothing-length of part*icle j.
  * @param pi First part*icle.
@@ -239,7 +239,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   /* Includes the hubble flow term; not used for du/dt */
   const float dvdr_Hubble = dvdr + a2_Hubble * r2;
 
-  /* Are the part*icles moving towards each others ? */
+  /* Are the particles moving towards each others ? */
   const float omega_ij = min(dvdr_Hubble, 0.f);
   const float mu_ij = fac_mu * r_inv * omega_ij; /* This is 0 or negative */
 
@@ -258,19 +258,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Convolve with the kernel */
   const float visc_acc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
-  
-  const float pressure_with_floor_i =
-    pressure_floor_get_comoving_pressure(pi, pi->pressure_bar);
-  const float pressure_with_floor_j =
-    pressure_floor_get_comoving_pressure(pj, pj->pressure_bar);
-
 
   /* SPH acceleration term */
   const float sph_acc_term =
-    pressure_with_floor_i * pressure_with_floor_j * hydro_gamma_minus_one * hydro_gamma_minus_one *
-      ((pi->force.pressure_ratio * f_ij) * wi_dr +
-       (pj->force.pressure_ratio * f_ji) * wj_dr) *
-    r_inv / ((gamma - 1) * (gamma - 1) * mj * mi);
+      pj->u * pi->u * hydro_gamma_minus_one * hydro_gamma_minus_one *
+      ((f_ij / pi->pressure_bar) * wi_dr + (f_ji / pj->pressure_bar) * wj_dr) *
+      r_inv;
 
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term;
@@ -285,12 +278,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   pj->a_hydro[2] += mi * acc * dx[2];
 
   /* Get the time derivative for u. */
-  const float sph_du_term_i =
-      hydro_gamma_minus_one * hydro_gamma_minus_one * pressure_with_floor_i * pressure_with_floor_j *
-      (pi->force.pressure_ratio * f_ij) * wi_dr * dvdr * r_inv / ((gamma - 1) * (gamma - 1) * mj * mi);
-  const float sph_du_term_j =
-      hydro_gamma_minus_one * hydro_gamma_minus_one * pressure_with_floor_i * pressure_with_floor_j *
-      (pj->force.pressure_ratio * f_ji) * wj_dr * dvdr * r_inv / ((gamma - 1) * (gamma - 1) * mj * mi);
+  const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                              pj->u * pi->u * (f_ij / pi->pressure_bar) *
+                              wi_dr * dvdr * r_inv;
+  const float sph_du_term_j = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                              pi->u * pj->u * (f_ji / pj->pressure_bar) *
+                              wj_dr * dvdr * r_inv;
 
   /* Viscosity term */
   const float visc_du_term = 0.5f * visc_acc_term * dvdr_Hubble;
@@ -313,10 +306,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 }
 
 /**
- * @brief Force interaction between two part*icles (non-symmetric).
+ * @brief Force interaction between two particles (non-symmetric).
  *
- * @param r2 Comoving square distance between the two part*icles.
- * @param dx Comoving vector separating both part*icles (pi - pj).
+ * @param r2 Comoving square distance between the two particles.
+ * @param dx Comoving vector separating both particles (pi - pj).
  * @param hi Comoving smoothing-length of part*icle i.
  * @param hj Comoving smoothing-length of part*icle j.
  * @param pi First part*icle.
@@ -373,7 +366,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Includes the hubble flow term; not used for du/dt */
   const float dvdr_Hubble = dvdr + a2_Hubble * r2;
 
-  /* Are the part*icles moving towards each others ? */
+  /* Are the particles moving towards each others ? */
   const float omega_ij = min(dvdr_Hubble, 0.f);
   const float mu_ij = fac_mu * r_inv * omega_ij; /* This is 0 or negative */
 
@@ -393,17 +386,11 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   /* Convolve with the kernel */
   const float visc_acc_term = 0.5f * visc * (wi_dr + wj_dr) * r_inv;
 
-  const float pressure_with_floor_i =
-    pressure_floor_get_comoving_pressure(pi, pi->pressure_bar);
-  const float pressure_with_floor_j =
-    pressure_floor_get_comoving_pressure(pj, pj->pressure_bar);
-
   /* SPH acceleration term */
   const float sph_acc_term =
-    pressure_with_floor_i * pressure_with_floor_j * hydro_gamma_minus_one * hydro_gamma_minus_one *
-      ((pi->pressure_ratio * f_ij) * wi_dr +
-       (pj->pressure_ratio * f_ji) * wj_dr) *
-      r_inv / ((gamma - 1) * (gamma - 1) * mj * mi);
+      pj->u * pi->u * hydro_gamma_minus_one * hydro_gamma_minus_one *
+      ((f_ij / pi->pressure_bar) * wi_dr + (f_ji / pj->pressure_bar) * wj_dr) *
+      r_inv;
 
   /* Assemble the acceleration */
   const float acc = sph_acc_term + visc_acc_term;
@@ -414,9 +401,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   pi->a_hydro[2] -= mj * acc * dx[2];
 
   /* Get the time derivative for u. */
-  const float sph_du_term_i =
-      hydro_gamma_minus_one * hydro_gamma_minus_one * pressure_with_floor_i * pressure_with_floor_j *
-      (pi->pressure_ratio * f_ij) * wi_dr * dvdr * r_inv / ((gamma - 1) * (gamma - 1) * mj * mi);
+  const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
+                              pj->u * pi->u * (f_ij / pi->pressure_bar) *
+                              wi_dr * dvdr * r_inv;
 
   /* Viscosity term */
   const float visc_du_term = 0.5f * visc_acc_term * dvdr_Hubble;

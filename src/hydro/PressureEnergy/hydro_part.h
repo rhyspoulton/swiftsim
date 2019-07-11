@@ -167,10 +167,6 @@ struct part {
 
       /*! Balsara switch */
       float balsara;
-
-      /*! The ratio of pressure (avoid to compute it in the iact).
-       *  Without the pressure floor, it is simply 1 / pressure_bar */
-      float pressure_ratio;
     } force;
   };
 
