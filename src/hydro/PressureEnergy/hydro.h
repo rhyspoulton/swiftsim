@@ -648,7 +648,8 @@ __attribute__((always_inline)) INLINE static void hydro_prepare_force(
   const float pressure_with_floor =
       pressure_floor_get_comoving_pressure(p, p->pressure_bar);
 
-  const float pressure2 = pi->pressure_bar * pi->pressure_bar;
+  //const float pressure2 = pi->pressure_bar * pi->pressure_bar;
+  const float pressure2 = pressure_with_floor * pressure_with_floor;
 
   /* Update variables. */
   p->force.f = grad_h_term;
@@ -772,7 +773,9 @@ __attribute__((always_inline)) INLINE static void hydro_predict_extra(
   const float pressure_with_floor =
     pressure_floor_get_comoving_pressure(p, p->pressure_bar);
 
-  const float pressure2 = pi->pressure_bar * pi->pressure_bar;
+  //const float pressure2 = pi->pressure_bar * pi->pressure_bar;
+  const float pressure2 = pressure_with_floor * pressure_with_floor;
+
   p->force.pressure_ratio = pressure_with_floor / pressure2;
 
 }
