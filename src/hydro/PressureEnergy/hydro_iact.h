@@ -34,6 +34,7 @@
 
 #include "adiabatic_index.h"
 #include "minmax.h"
+#include "pressure_floor.h"
 
 #include "./hydro_parameters.h"
 
@@ -42,10 +43,10 @@
  *
  * @param r2 Comoving square distance between the two particles.
  * @param dx Comoving vector separating both particles (pi - pj).
- * @param hi Comoving smoothing-length of part*icle i.
- * @param hj Comoving smoothing-length of part*icle j.
- * @param pi First part*icle.
- * @param pj Second part*icle.
+ * @param hi Comoving smoothing-length of particle i.
+ * @param hj Comoving smoothing-length of particle j.
+ * @param pi First particle.
+ * @param pj Second particle.
  * @param a Current scale factor.
  * @param H Current Hubble parameter.
  */
@@ -66,14 +67,18 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
   const float hi_inv = 1.f / hi;
   const float ui = r * hi_inv;
 
+  /* Get the internal energies with the floor */
+  const float piu = pressure_floor_get_comoving_internal_energy(pi, pi->u);
+  const float pju = pressure_floor_get_comoving_internal_energy(pj, pj->u);
+
   kernel_deval(ui, &wi, &wi_dx);
 
   pi->rho += mj * wi;
   pi->density.rho_dh -= mj * (hydro_dimension * wi + ui * wi_dx);
 
-  pi->pressure_bar += mj * wi * pj->u;
+  pi->pressure_bar += mj * wi * pju;
   pi->density.pressure_bar_dh -=
-      mj * pj->u * (hydro_dimension * wi + ui * wi_dx);
+      mj * pju * (hydro_dimension * wi + ui * wi_dx);
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + ui * wi_dx);
 
@@ -84,9 +89,9 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
 
   pj->rho += mi * wj;
   pj->density.rho_dh -= mi * (hydro_dimension * wj + uj * wj_dx);
-  pj->pressure_bar += mi * wj * pi->u;
+  pj->pressure_bar += mi * wj * piu;
   pj->density.pressure_bar_dh -=
-      mi * pi->u * (hydro_dimension * wj + uj * wj_dx);
+      mi * piu * (hydro_dimension * wj + uj * wj_dx);
   pj->density.wcount += wj;
   pj->density.wcount_dh -= (hydro_dimension * wj + uj * wj_dx);
 
@@ -124,10 +129,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_density(
  *
  * @param r2 Comoving square distance between the two particles.
  * @param dx Comoving vector separating both particles (pi - pj).
- * @param hi Comoving smoothing-length of part*icle i.
- * @param hj Comoving smoothing-length of part*icle j.
- * @param pi First part*icle.
- * @param pj Second part*icle (not updated).
+ * @param hi Comoving smoothing-length of particle i.
+ * @param hj Comoving smoothing-length of particle j.
+ * @param pi First particle.
+ * @param pj Second particle (not updated).
  * @param a Current scale factor.
  * @param H Current Hubble parameter.
  */
@@ -148,13 +153,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
   const float ui = r * h_inv;
   kernel_deval(ui, &wi, &wi_dx);
 
+  /* Get the internal energies with the floor */
+  const float pju = pressure_floor_get_comoving_internal_energy(pj, pj->u);
+
   pi->rho += mj * wi;
   pi->density.rho_dh -= mj * (hydro_dimension * wi + ui * wi_dx);
 
-  pi->pressure_bar += mj * wi * pj->u;
+  pi->pressure_bar += mj * wi * pju;
 
   pi->density.pressure_bar_dh -=
-      mj * pj->u * (hydro_dimension * wi + ui * wi_dx);
+      mj * pju * (hydro_dimension * wi + ui * wi_dx);
   pi->density.wcount += wi;
   pi->density.wcount_dh -= (hydro_dimension * wi + ui * wi_dx);
 
@@ -184,10 +192,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_density(
  *
  * @param r2 Comoving square distance between the two particles.
  * @param dx Comoving vector separating both particles (pi - pj).
- * @param hi Comoving smoothing-length of part*icle i.
- * @param hj Comoving smoothing-length of part*icle j.
- * @param pi First part*icle.
- * @param pj Second part*icle.
+ * @param hi Comoving smoothing-length of particle i.
+ * @param hj Comoving smoothing-length of particle j.
+ * @param pi First particle.
+ * @param pj Second particle.
  * @param a Current scale factor.
  * @param H Current Hubble parameter.
  */
@@ -206,11 +214,16 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
   const float mj = pj->mass;
   const float mi = pi->mass;
 
-  const float miui = mi * pi->u;
-  const float mjuj = mj * pj->u;
+  /* Get the internal energies with the floor */
+  const float piu = pressure_floor_get_comoving_internal_energy(pi, pi->u);
+  const float pju = pressure_floor_get_comoving_internal_energy(pj, pj->u);
+
+  const float miui = mi * piu;
+  const float mjuj = mj * pju;
 
   const float rhoi = pi->rho;
   const float rhoj = pj->rho;
+
   /* Compute gradient terms */
   const float f_ij = 1.f - (pi->force.f / mjuj);
   const float f_ji = 1.f - (pj->force.f / miui);
@@ -261,7 +274,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* SPH acceleration term */
   const float sph_acc_term =
-      pj->u * pi->u * hydro_gamma_minus_one * hydro_gamma_minus_one *
+      pju * piu * hydro_gamma_minus_one * hydro_gamma_minus_one *
       ((f_ij / pi->pressure_bar) * wi_dr + (f_ji / pj->pressure_bar) * wj_dr) *
       r_inv;
 
@@ -279,10 +292,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
 
   /* Get the time derivative for u. */
   const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
-                              pj->u * pi->u * (f_ij / pi->pressure_bar) *
+                              pju * piu * (f_ij / pi->pressure_bar) *
                               wi_dr * dvdr * r_inv;
   const float sph_du_term_j = hydro_gamma_minus_one * hydro_gamma_minus_one *
-                              pi->u * pj->u * (f_ji / pj->pressure_bar) *
+                              piu * pju * (f_ji / pj->pressure_bar) *
                               wj_dr * dvdr * r_inv;
 
   /* Viscosity term */
@@ -310,10 +323,10 @@ __attribute__((always_inline)) INLINE static void runner_iact_force(
  *
  * @param r2 Comoving square distance between the two particles.
  * @param dx Comoving vector separating both particles (pi - pj).
- * @param hi Comoving smoothing-length of part*icle i.
- * @param hj Comoving smoothing-length of part*icle j.
- * @param pi First part*icle.
- * @param pj Second part*icle (not updated).
+ * @param hi Comoving smoothing-length of particle i.
+ * @param hj Comoving smoothing-length of particle j.
+ * @param pi First particle.
+ * @param pj Second particle (not updated).
  * @param a Current scale factor.
  * @param H Current Hubble parameter.
  */
@@ -333,8 +346,12 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
   const float mj = pj->mass;
   const float mi = pi->mass;
 
-  const float miui = mi * pi->u;
-  const float mjuj = mj * pj->u;
+  /* Get the internal energies with the floor */
+  const float piu = pressure_floor_get_comoving_internal_energy(pi, pi->u);
+  const float pju = pressure_floor_get_comoving_internal_energy(pj, pj->u);
+ 
+  const float miui = mi * piu;
+  const float mjuj = mj * pju;
 
   const float rhoi = pi->rho;
   const float rhoj = pj->rho;
@@ -388,7 +405,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* SPH acceleration term */
   const float sph_acc_term =
-      pj->u * pi->u * hydro_gamma_minus_one * hydro_gamma_minus_one *
+      pju * piu * hydro_gamma_minus_one * hydro_gamma_minus_one *
       ((f_ij / pi->pressure_bar) * wi_dr + (f_ji / pj->pressure_bar) * wj_dr) *
       r_inv;
 
@@ -402,7 +419,7 @@ __attribute__((always_inline)) INLINE static void runner_iact_nonsym_force(
 
   /* Get the time derivative for u. */
   const float sph_du_term_i = hydro_gamma_minus_one * hydro_gamma_minus_one *
-                              pj->u * pi->u * (f_ij / pi->pressure_bar) *
+                              pju * piu * (f_ij / pi->pressure_bar) *
                               wi_dr * dvdr * r_inv;
 
   /* Viscosity term */

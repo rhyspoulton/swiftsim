@@ -91,6 +91,55 @@ static INLINE float pressure_floor_get_comoving_pressure(const struct part *p,
   return fmax(pressure, floor);
 }
 
+
+/**
+ * @brief Compute the physical internal energy floor of a given #part.
+ *
+ * Note that the particle is not updated!!
+ *
+ * @param p The #part.
+ * @param cosmo The #cosmology.
+ * @param u The internal energy without any floor.
+ */
+static INLINE float pressure_floor_get_physical_internal_energy(
+    const struct part *p, const struct cosmology *cosmo, const float u) {
+
+  /* Physical density in internal units */
+  const float rho = hydro_get_physical_density(p, cosmo);
+
+  /* Compute pressure floor */
+  float floor =
+      4.0 * M_1_PI * p->h * p->h * rho * pressure_floor_props.n_jeans_2_3;
+  // TODO add sigma (will be done once the SF is merged)
+  floor *= hydro_one_over_gamma * hydro_one_over_gamma_minus_one;
+
+  return fmax(u, floor);
+}
+
+
+/**
+ * @brief Compute the comoving internal energy floor of a given #part.
+ *
+ * Note that the particle is not updated!!
+ *
+ * @param p The #part.
+ * @param u The internal energy without any floor.
+ */
+static INLINE float pressure_floor_get_comoving_internal_energy(
+    const struct part *p, const float u) {
+
+  /* Physical density in internal units */
+  const float rho = hydro_get_comoving_density(p);
+
+  /* Compute pressure floor */
+  float floor =
+      4.0 * M_1_PI * p->h * p->h * rho * pressure_floor_props.n_jeans_2_3;
+  // TODO add sigma (will be done once the SF is merged)
+  floor *= hydro_one_over_gamma * hydro_one_over_gamma_minus_one;
+
+  return fmax(u, floor);
+}
+
 /**
  * @brief Initialise the pressure floor by reading the parameters and converting
  * to internal units.

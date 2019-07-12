@@ -35,6 +35,7 @@
 
 extern struct pressure_floor_properties pressure_floor_props;
 
+
 /* Pre-declarations to avoid cyclic inclusions */
 static INLINE float hydro_get_physical_density(const struct part *restrict p,
                                                const struct cosmology *cosmo);
@@ -45,6 +46,12 @@ static INLINE float pressure_floor_get_physical_pressure(
 
 static INLINE float pressure_floor_get_comoving_pressure(const struct part *p,
                                                          const float pressure);
+
+static INLINE float pressure_floor_get_physical_internal_energy(
+    const struct part *p, const struct cosmology *cosmo, const float u);
+
+static INLINE float pressure_floor_get_comoving_internal_energy(const struct part *p,
+								const float u);
 
 /* Check if pressure floor is implemented in hydro */
 #ifndef PRESSURE_FLOOR_NONE

@@ -46,6 +46,7 @@
 #include "hydro_space.h"
 #include "kernel_hydro.h"
 #include "minmax.h"
+#include "pressure_floor.h"
 
 #include "./hydro_parameters.h"
 
@@ -529,11 +530,13 @@ __attribute__((always_inline)) INLINE static void hydro_end_density(
   const float h_inv_dim = pow_dimension(h_inv);       /* 1/h^d */
   const float h_inv_dim_plus_one = h_inv_dim * h_inv; /* 1/h^(d+1) */
 
+  const float u = pressure_floor_get_comoving_internal_energy(p, p->u);
+
   /* Final operation on the density (add self-contribution). */
   p->rho += p->mass * kernel_root;
   p->density.rho_dh -= hydro_dimension * p->mass * kernel_root;
-  p->pressure_bar += p->mass * p->u * kernel_root;
-  p->density.pressure_bar_dh -= hydro_dimension * p->mass * p->u * kernel_root;
+  p->pressure_bar += p->mass * u * kernel_root;
+  p->density.pressure_bar_dh -= hydro_dimension * p->mass * u * kernel_root;
   p->density.wcount += kernel_root;
   p->density.wcount_dh -= hydro_dimension * kernel_root;
 
@@ -579,10 +582,12 @@ __attribute__((always_inline)) INLINE static void hydro_part_has_no_neighbours(
   const float h_inv = 1.0f / h;                 /* 1/h */
   const float h_inv_dim = pow_dimension(h_inv); /* 1/h^d */
 
+  const float u = pressure_floor_get_comoving_internal_energy(p, p->u);
+
   /* Re-set problematic values */
   p->rho = p->mass * kernel_root * h_inv_dim;
   p->pressure_bar =
-      p->mass * p->u * hydro_gamma_minus_one * kernel_root * h_inv_dim;
+      p->mass * u * hydro_gamma_minus_one * kernel_root * h_inv_dim;
   p->density.wcount = kernel_root * h_inv_dim;
   p->density.rho_dh = 0.f;
   p->density.wcount_dh = 0.f;
