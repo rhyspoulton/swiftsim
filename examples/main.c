@@ -358,12 +358,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (with_black_holes && !with_external_gravity && !with_self_gravity) {
+  if (with_black_holes && !with_self_gravity) {
     if (myrank == 0) {
       argparse_usage(&argparse);
       printf(
-          "\nError: Cannot process black holes without gravity, -g or -G "
-          "must be chosen.\n");
+          "\nError: Cannot process black holes without self-gravity, -G must "
+          "be chosen.\n");
     }
     return 1;
   }
@@ -799,11 +799,10 @@ int main(int argc, char *argv[]) {
       bzero(&black_holes_properties, sizeof(struct black_holes_props));
 
     /* Initialise the gravity properties */
+    bzero(&gravity_properties, sizeof(struct gravity_props));
     if (with_self_gravity)
-      gravity_props_init(&gravity_properties, params, &cosmo, with_cosmology,
-                         periodic);
-    else
-      bzero(&gravity_properties, sizeof(struct gravity_props));
+      gravity_props_init(&gravity_properties, params, &prog_const, &cosmo,
+                         with_cosmology, periodic);
 
       /* Initialise the cooling function properties */
 #ifdef COOLING_NONE
@@ -1012,7 +1011,7 @@ int main(int argc, char *argv[]) {
           "the ICs!");
     }
 
-    /* Verify that each particle is in it's proper cell. */
+    /* Verify that each particle is in its proper cell. */
     if (talking && !dry_run) {
       int icount = 0;
       space_map_cells_pre(&s, 0, &map_cellcheck, &icount);
@@ -1098,11 +1097,6 @@ int main(int argc, char *argv[]) {
 /* Initialise the table of Ewald corrections for the gravity checks */
 #ifdef SWIFT_GRAVITY_FORCE_CHECKS
   if (s.periodic) gravity_exact_force_ewald_init(e.s->dim[0]);
-#endif
-
-/* Init the runner history. */
-#ifdef HIST
-  for (k = 0; k < runner_hist_N; k++) runner_hist_bins[k] = 0;
 #endif
 
   if (!restart) {
@@ -1242,17 +1236,6 @@ int main(int argc, char *argv[]) {
     }
 #endif  // SWIFT_DEBUG_THREADPOOL
   }
-
-/* Print the values of the runner histogram. */
-#ifdef HIST
-  printf("main: runner histogram data:\n");
-  for (k = 0; k < runner_hist_N; k++)
-    printf(" %e %e %e\n",
-           runner_hist_a + k * (runner_hist_b - runner_hist_a) / runner_hist_N,
-           runner_hist_a +
-               (k + 1) * (runner_hist_b - runner_hist_a) / runner_hist_N,
-           (double)runner_hist_bins[k]);
-#endif
 
   /* Write final time information */
   if (myrank == 0) {
