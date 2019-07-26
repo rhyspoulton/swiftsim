@@ -27,8 +27,9 @@
  */
 struct velociraptor_gpart_data {
 
-  /*! Group ID of that #gpart. */
+  int index;
   long long groupID;
+  bool imbp;
 };
 
 #endif /* SWIFT_VELOCIRAPTOR_STRUCT_H */

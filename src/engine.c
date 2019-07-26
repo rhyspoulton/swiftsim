@@ -5043,6 +5043,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
     parser_get_param_string(params, "StructureFinding:config_file_name",
                             e->stf_config_file_name);
 
+    e->stf_return_group_info =
+        parser_get_opt_param_int(params, "StructureFinding:return_group_information", 0);
     e->time_first_stf_output =
         parser_get_opt_param_double(params, "StructureFinding:time_first", 0.);
     e->a_first_stf_output = parser_get_opt_param_double(
