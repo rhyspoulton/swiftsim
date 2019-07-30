@@ -169,6 +169,8 @@ struct groupinfo {
 
   /*! Group number of the #gpart. */
   long long groupID;
+
+  bool imbp;
 };
 
 int InitVelociraptor(char *config_name, struct unitinfo unit_info,
@@ -337,10 +339,10 @@ void velociraptor_init(struct engine *e) {
   sim_info.izoomsim = 0;
 
   /* Tell VELOCIraptor what we have in the simulation */
-  sim_info.idarkmatter = (e->total_nr_gparts - e->total_nr_parts e->total_nr_bparts > 0);
+  sim_info.idarkmatter = (e->total_nr_gparts - e->total_nr_parts - e->total_nr_bparts > 0);
   sim_info.igas = (e->policy & engine_policy_hydro);
   sim_info.istar = (e->policy & engine_policy_stars);
-  sim_info.ibh = (e->policy & engine_policy_bh);
+  sim_info.ibh = (e->policy & engine_policy_black_holes);
   sim_info.iother = 0;
 
   /* Be nice, talk! */
@@ -566,7 +568,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
 
   group_info = (struct groupinfo *)InvokeVelociraptor(
       snapnum, outputFileName, cosmo_info, sim_info, nr_gparts, nr_parts,
-      nr_sparts, nr_bhparts, swift_parts, cell_node_ids, e->nr_threads,
+      nr_sparts, nr_bparts, swift_parts, cell_node_ids, e->nr_threads,
       linked_with_snap + e->stf_return_group_info,
       &num_gparts_in_groups);
 

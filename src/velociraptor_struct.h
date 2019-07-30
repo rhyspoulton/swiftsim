@@ -32,11 +32,6 @@ struct velociraptor_gpart_data {
   bool imbp;
   /* store the groupID of the last group to which the particle was the group's most bound particle */
   long long groupID_lastmbp;
-  velociraptor_gpart_data(){
-      groupID=0;
-      imbp=false;
-      groupID_lastmbp=0;
-  }
 };
 
 #endif /* SWIFT_VELOCIRAPTOR_STRUCT_H */
