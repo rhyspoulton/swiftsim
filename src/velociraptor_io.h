@@ -21,6 +21,7 @@
 
 /* Config parameters. */
 #include "../config.h"
+#include "velociraptor_struct.h"
 
 INLINE static void velociraptor_convert_part_groupID(const struct engine* e,
                                                      const struct part* p,
@@ -95,5 +96,65 @@ __attribute__((always_inline)) INLINE static int velociraptor_write_bparts(
 
   return 1;
 }
+
+void io_collect_velociraptor_parts_to_write(const int imbp,
+                                           const struct velociraptor_gpart_data* restrict groupinfo,
+                                           const struct part* restrict parts,
+                                           const struct xpart* restrict xparts,
+                                           struct part* restrict parts_written,
+                                           struct xpart* restrict xparts_written,
+                                           const size_t Nparts,
+                                           const size_t Nparts_written);
+void io_collect_velociraptor_sparts_to_write(const int imbp,
+                                            const struct velociraptor_gpart_data* restrict groupinfo,
+                                            const struct spart* restrict sparts,
+                                            struct spart* restrict sparts_written,
+                                            const size_t Nsparts,
+                                            const size_t Nsparts_written);
+void io_collect_velociraptor_bparts_to_write(const int imbp,
+                                            const struct velociraptor_gpart_data* restrict groupinfo,
+                                            const struct bpart* restrict bparts,
+                                            struct bpart* restrict bparts_written,
+                                            const size_t Nbparts,
+                                            const size_t Nbparts_written);
+void io_collect_velociraptor_gparts_to_write(const int imbp,
+                                            const struct velociraptor_gpart_data* restrict groupinfo,
+                                            const struct gpart* restrict gparts,
+                                            struct gpart* restrict gparts_written,
+                                            const size_t Ngparts, const size_t Ngparts_written);
+
+#if defined(HAVE_HDF5) && defined(WITH_MPI) && defined(HAVE_PARALLEL_HDF5)
+//need for parallel hdf write
+void prepare_velociraptor_snippet_file(struct engine* e, const char* baseName,
+                  long long N_total[6],
+                  const int ifile_mbp,
+                  const struct unit_system* internal_units,
+                  const struct unit_system* snapshot_units);
+
+void write_velociraptor_snippet_output_parallel(struct engine* e, const char* baseName,
+                           const struct unit_system* internal_units,
+                           const struct unit_system* snapshot_units,
+                           int mpi_rank, int mpi_size, MPI_Comm comm,
+                           MPI_Info info);
+#endif
+
+#if defined(HAVE_HDF5) && defined(WITH_MPI) && !defined(HAVE_PARALLEL_HDF5)
+void write_velociraptor_snippet_output_serial(struct engine* e, const char* baseName,
+                           const struct unit_system* internal_units,
+                           const struct unit_system* snapshot_units,
+                           int mpi_rank, int mpi_size, MPI_Comm comm,
+                           MPI_Info info);
+
+                           void read_ic_serial(char* fileName, const struct unit_system* internal_units,
+                                               double dim[3], struct part** parts, struct gpart** gparts,
+                                               struct spart** sparts, struct bpart** bparts, size_t* Ngas,
+                                               size_t* Ngparts, size_t* Nstars, size_t* Nblackholes,
+                                               int* flag_entropy, int with_hydro, int with_gravity,
+                                               int with_stars, int with_black_holes, int cleanup_h,
+                                               int cleanup_sqrt_a, double h, double a, int mpi_rank,
+                                               int mpi_size, MPI_Comm comm, MPI_Info info, int n_threads,
+                                               int dry_run);
+
+#endif
 
 #endif /* SWIFT_VELOCIRAPTOR_IO_H */

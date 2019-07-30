@@ -5045,6 +5045,10 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
 
     e->stf_return_group_info =
         parser_get_opt_param_int(params, "StructureFinding:return_group_information", 0);
+    e->stf_output_mostboundparticles =
+        parser_get_opt_param_int(params, "StructureFinding:write_snippet_of_most_bound_particles", 0);
+    e->stf_output_particlesingroups =
+        parser_get_opt_param_int(params, "StructureFinding:write_snippet_of_particles_in_groups", 0);
     e->time_first_stf_output =
         parser_get_opt_param_double(params, "StructureFinding:time_first", 0.);
     e->a_first_stf_output = parser_get_opt_param_double(

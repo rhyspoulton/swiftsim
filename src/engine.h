@@ -307,6 +307,8 @@ struct engine {
   char stf_base_name[PARSER_MAX_LINE_SIZE];
   int stf_output_count;
   int stf_return_group_info;
+  int stf_output_mostboundparticles;
+  int stf_output_particlesingroups;
 
   /* FoF black holes seeding information */
   double a_first_fof_call;
