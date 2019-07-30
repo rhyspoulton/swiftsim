@@ -177,7 +177,7 @@ int InitVelociraptor(char *config_name, struct unitinfo unit_info,
 struct groupinfo *InvokeVelociraptor(
     const int snapnum, char *output_name, struct cosmoinfo cosmo_info,
     struct siminfo sim_info, const size_t num_gravity_parts,
-    const size_t num_hydro_parts, const size_t num_star_parts,
+    const size_t num_hydro_parts, const size_t num_star_parts, const size_t num_bh_parts, 
     struct swift_vel_part *swift_parts, const int *cell_node_ids,
     const int numthreads, const int return_group_flags,
     int *const num_in_groups);
@@ -337,10 +337,10 @@ void velociraptor_init(struct engine *e) {
   sim_info.izoomsim = 0;
 
   /* Tell VELOCIraptor what we have in the simulation */
-  sim_info.idarkmatter = (e->total_nr_gparts - e->total_nr_parts > 0);
+  sim_info.idarkmatter = (e->total_nr_gparts - e->total_nr_parts e->total_nr_bparts > 0);
   sim_info.igas = (e->policy & engine_policy_hydro);
   sim_info.istar = (e->policy & engine_policy_stars);
-  sim_info.ibh = 0;  // sim_info.ibh = (e->policy&engine_policy_bh);
+  sim_info.ibh = (e->policy & engine_policy_bh);
   sim_info.iother = 0;
 
   /* Be nice, talk! */
@@ -388,6 +388,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   const size_t nr_gparts = s->nr_gparts;
   const size_t nr_parts = s->nr_parts;
   const size_t nr_sparts = s->nr_sparts;
+  const size_t nr_bparts = s->nr_bparts;
   const int nr_cells = s->nr_cells;
   const struct cell *cells_top = s->cells_top;
 
@@ -444,7 +445,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   if (e->policy & engine_policy_cosmology) {
     sim_info.icosmologicalsim = 1;
     sim_info.izoomsim = 0;
-    const size_t total_nr_baryons = e->total_nr_parts + e->total_nr_sparts;
+    const size_t total_nr_baryons = e->total_nr_parts + e->total_nr_sparts + e->total_nr_bparts;
     const size_t total_nr_dmparts = e->total_nr_gparts - total_nr_baryons;
     sim_info.interparticlespacing = sim_info.period / cbrt(total_nr_dmparts);
   } else {
@@ -560,12 +561,12 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   struct groupinfo *group_info = NULL;
 
   /* Call VELOCIraptor. */
-  // prior call had VR not return information if not linked with a snapshot produced 
+  // prior call had VR not return information if not linked with a snapshot produced
   // by swift. But now returns if either linked_with_snap or e->stf_return_group_info
-  
+
   group_info = (struct groupinfo *)InvokeVelociraptor(
       snapnum, outputFileName, cosmo_info, sim_info, nr_gparts, nr_parts,
-      nr_sparts, swift_parts, cell_node_ids, e->nr_threads, 
+      nr_sparts, nr_bhparts, swift_parts, cell_node_ids, e->nr_threads,
       linked_with_snap + e->stf_return_group_info,
       &num_gparts_in_groups);
 
@@ -599,7 +600,13 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
     /* Copy the data at the right place */
     for (int i = 0; i < num_gparts_in_groups; i++) {
       data[group_info[i].index].groupID = group_info[i].groupID;
+      data[group_info[i].index].imbp = group_info[i].imbp;
+      if (group_info[i].imbp) data[group_info[i].index].groupID_lastmbp = group_info[i].groupID;
     }
+
+    /* Write a snippet of all the particles in groups if desired */
+    /* or write a snippet of only the most bound particles and their group id */
+
 
     /* Report timing */
     if (e->verbose)
