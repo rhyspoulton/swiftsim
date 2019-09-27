@@ -1125,6 +1125,10 @@ AM_CONDITIONAL([HAVEGRACKLE],[test -n "$GRACKLE_LIBS"])
 
 # Check for VELOCIraptor.
 have_velociraptor="no"
+have_velociraptor_with_gas="no"
+have_velociraptor_with_star="no"
+have_velociraptor_with_bh="no"
+have_velociraptor_with_nomass="no"
 AC_ARG_WITH([velociraptor],
     [AS_HELP_STRING([--with-velociraptor=PATH],
        [Directory where velociraptor library exists @<:@yes/no@:>@]
@@ -1148,13 +1152,16 @@ if test "x$with_velociraptor" != "xno"; then
       [velociraptor],
       [InitVelociraptor],
       [AC_DEFINE([HAVE_VELOCIRAPTOR],1,[The VELOCIraptor library appears to be present.])],
-      [AC_MSG_ERROR(Cannot find VELOCIraptor library at $with_velociraptor or incompatible HDF5 library loaded.)],
+      [AC_MSG_ERROR(Cannot find VELOCIraptor library at $with_velociraptor or incompatible
+      HDF5 library loaded or MPI library requires used to test existence of velociraptor
+      requires a change.  See config.log for more details. If MPI is seen then may require
+      alteration of configure.ac and rerun autogen.sh as  by default libmpi but some
+      systems require libmpi_cxx.)],
       [$VELOCIRAPTOR_LIBS $HDF5_LDFLAGS $HDF5_LIBS $GSL_LIBS]
    )
 fi
 AC_SUBST([VELOCIRAPTOR_LIBS])
 AM_CONDITIONAL([HAVEVELOCIRAPTOR],[test -n "$VELOCIRAPTOR_LIBS"])
-
 # Check for dummy VELOCIraptor.
 AC_ARG_ENABLE([dummy-velociraptor],
     [AS_HELP_STRING([--enable-dummy-velociraptor],
@@ -1163,12 +1170,105 @@ AC_ARG_ENABLE([dummy-velociraptor],
     [enable_dummy_velociraptor="$enableval"],
     [enable_dummy_velociraptor="no"]
 )
-
+X
 if test "$enable_dummy_velociraptor" = "yes"; then
   have_velociraptor="yes"
 
   AC_DEFINE(HAVE_VELOCIRAPTOR,1,[The VELOCIraptor library appears to be present.])
   AC_DEFINE(HAVE_DUMMY_VELOCIRAPTOR,1,[The dummy VELOCIraptor library is present.])
+fi
+
+if test "$have_velociraptor" == "yes"; then
+    AC_CHECK_LIB(
+       [velociraptor],
+       [VR_GASON],
+       [AC_DEFINE([HAVE_VELOCIRAPTOR_WITH_GAS],1,[The VELOCIraptor library appears to be present and compiled with GASON.])],
+       [AC_MSG_RESULT(VELOCIraptor not compiled to store gas properties)],
+       [$VELOCIRAPTOR_LIBS $HDF5_LDFLAGS $HDF5_LIBS $GSL_LIBS]
+    )
+    AC_CHECK_DECL(
+        [HAVE_VELOCIRAPTOR_WITH_GAS],
+        [have_velociraptor_with_gas="yes"]
+    )
+fi
+
+if test "$have_velociraptor" == "yes"; then
+    AC_CHECK_LIB(
+       [velociraptor],
+       [VR_STARON],
+       [AC_DEFINE([HAVE_VELOCIRAPTOR_WITH_STAR],1,[The VELOCIraptor library appears to be present and compiled with STARON.])],
+       [AC_MSG_RESULT(VELOCIraptor not compiled to store star properties)],
+       [$VELOCIRAPTOR_LIBS $HDF5_LDFLAGS $HDF5_LIBS $GSL_LIBS]
+    )
+    AC_CHECK_DECL(
+        [HAVE_VELOCIRAPTOR_WITH_STAR],
+        [have_velociraptor_with_star="yes"]
+    )
+fi
+
+if test "$have_velociraptor" == "yes"; then
+    AC_CHECK_LIB(
+       [velociraptor],
+       [VR_BHON],
+       [AC_DEFINE([HAVE_VELOCIRAPTOR_WITH_BH],1,[The VELOCIraptor library appears to be present and compiled with BHON.])],
+       [AC_MSG_RESULT(VELOCIraptor not compiled to store bh properties)],
+       [$VELOCIRAPTOR_LIBS $HDF5_LDFLAGS $HDF5_LIBS $GSL_LIBS]
+    )
+    AC_CHECK_DECL(
+        [HAVE_VELOCIRAPTOR_WITH_BH],
+        [have_velociraptor_with_bh="yes"]
+    )
+fi
+if test "$have_velociraptor" == "yes"; then
+    AC_CHECK_LIB(
+       [velociraptor],
+       [VR_NOMASS],
+       [AC_DEFINE([HAVE_VELOCIRAPTOR_WITH_NOMASS],1,[The VELOCIraptor library appears to be present and has been compiled with the NOMASS option. Only useful if running a uniform box.])],
+       [AC_MSG_RESULT(VELOCIraptor not compiled to so as to not store masses per particle.)],
+       [$VELOCIRAPTOR_LIBS $HDF5_LDFLAGS $HDF5_LIBS $GSL_LIBS]
+    )
+    AC_CHECK_DECL(
+        [HAVE_VELOCIRAPTOR_WITH_NOMASS],
+        [have_velociraptor_with_nomass="yes"]
+    )
+fi
+
+# Enable VR to not store mass per particle since all particles have the same mass
+# Reduces memory foot print.
+AC_ARG_ENABLE([velociraptor-uniform-box-no-mass-stored],
+   [AS_HELP_STRING([--enable-velociraptor-uniform-box-no-mass-stored],
+     [Enable VR to not store pass per particle, reducing memory footprint. Only useful for uniform box runs. @<:@yes/no@:>@]
+   )],
+   [enable_velociraptor_uniform_box_no_mass_stored="$enableval"],
+   [enable_velociraptor_uniform_box_no_mass_stored="no"]
+)
+
+#check that velociraptor is available if also demanding that it be compiled with no mass stored
+if test "$have_velociraptor" == "no"; then
+    if test "$enable_velociraptor_uniform_box_no_mass_stored" == "yes"; then
+        AC_MSG_ERROR([velociraptor not enabled yet asking to enable velociraptor option of no mass. Either enable by --with-velociraptor= or --disable-velociraptor-uniform-box-no-mass-stored])
+    fi
+fi
+
+if test "$have_velociraptor" == "yes"; then
+    if test "$enable_velociraptor_uniform_box_no_mass_stored" == "yes"; then
+        if test "$have_velociraptor_with_nomass" == "no"; then
+            AC_MSG_ERROR([VELOCIraptor library indicates it stores individual particle masses
+            but swift has been compiled --enable_velociraptor_uniform_box_no_mass_stored. Either disable this option
+            or ensure that the velociraptor library is compiled with -DVR_NO_MASS=ON.])
+        else
+            AC_MSG_ERROR([BLAH BLAH])
+        fi
+    fi
+fi
+if test "$have_velociraptor" == "yes"; then
+    if test "$enable_velociraptor_uniform_box_no_mass_stored" == "no"; then
+        if test "$have_velociraptor_with_nomass" == "yes"; then
+            AC_MSG_ERROR([VELOCIraptor library indicates it does not store individual particle masses
+            but swift has not been compiled --enable_velociraptor_uniform_box_no_mass_stored. Either enable this option
+            or ensure that the velociraptor library is compiled with -DVR_NO_MASS=OFF.])
+        fi
+    fi
 fi
 
 # Check for floating-point execeptions
@@ -1927,9 +2027,9 @@ case "$with_potential" in
 esac
 
 #  Entropy floor
-AC_ARG_WITH([entropy-floor], 
+AC_ARG_WITH([entropy-floor],
     [AS_HELP_STRING([--with-entropy-floor=<floor>],
-       [entropy floor @<:@none, EAGLE, default: none@:>@] 
+       [entropy floor @<:@none, EAGLE, default: none@:>@]
     )],
     [with_entropy_floor="$withval"],
     [with_entropy_floor="none"]
@@ -1952,10 +2052,10 @@ case "$with_entropy_floor" in
    *)
       AC_MSG_ERROR([Unknown entropy floor model])
    ;;
-esac 
+esac
 
 #  Pressure floor
-AC_ARG_WITH([pressure-floor], 
+AC_ARG_WITH([pressure-floor],
     [AS_HELP_STRING([--with-pressure-floor=<floor>],
        [pressure floor @<:@none, GEAR, default: none@:>@
        The hydro model needs to be compatible.]
@@ -1981,12 +2081,12 @@ case "$with_pressure_floor" in
    *)
       AC_MSG_ERROR([Unknown pressure floor model])
    ;;
-esac 
+esac
 
 #  Star formation
-AC_ARG_WITH([star-formation], 
+AC_ARG_WITH([star-formation],
     [AS_HELP_STRING([--with-star-formation=<sfm>],
-       [star formation @<:@none, EAGLE, GEAR, default: none@:>@] 
+       [star formation @<:@none, EAGLE, GEAR, default: none@:>@]
     )],
     [with_star_formation="$withval"],
     [with_star_formation="none"]
@@ -2012,7 +2112,7 @@ case "$with_star_formation" in
    *)
       AC_MSG_ERROR([Unknown star formation model])
    ;;
-esac 
+esac
 
 #  Gravity multipole order
 AC_ARG_WITH([multipole-order],
@@ -2132,5 +2232,12 @@ AC_MSG_RESULT([
 
    Particle Logger      : $with_logger
    Python enabled       : $have_python
+
+   VELOCIraptor gas on          : $have_velociraptor_with_gas
+   VELOCIraptor star on         : $have_velociraptor_with_star
+   VELOCIraptor bh on           : $have_velociraptor_with_bh
+   VELOCIraptor with no
+   masses stored per particle,
+   useful for uniform boxes     : $have_velociraptor_with_nomass
 
  ------------------------])
