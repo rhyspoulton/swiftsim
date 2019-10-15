@@ -280,6 +280,8 @@ struct engine {
   double a_first_snapshot;
   double time_first_snapshot;
   double delta_time_snapshot;
+  int snapshot_dump_grids;
+  int snapshot_grid_dim;
 
   /* Output_List for the snapshots */
   struct output_list *output_list_snapshots;
@@ -308,6 +310,24 @@ struct engine {
   char stf_config_file_name[PARSER_MAX_LINE_SIZE];
   char stf_base_name[PARSER_MAX_LINE_SIZE];
   int stf_output_count;
+
+  /* extra structure finding information, allows for multiple dumps */
+  /* in multiple directories, maximum of 10. */
+  int num_extra_stf_outputs;
+  double a_first_stf_output_extra[10];
+  double time_first_stf_output_extra[10];
+  double delta_time_stf_extra[10];
+
+  /* Output_List for the structure finding */
+  struct output_list *output_list_stf_extra[10];
+
+  /* Integer time of the next stf output */
+  integertime_t ti_next_stf_extra[10];
+
+  /* also allow for possible different configs */
+  char stf_config_file_name_extra[10][PARSER_MAX_LINE_SIZE];
+  char stf_base_name_extra[10][PARSER_MAX_LINE_SIZE];
+  int stf_output_count_extra[10];
 
   /* FoF black holes seeding information */
   double a_first_fof_call;
@@ -484,6 +504,7 @@ void engine_addlink(struct engine *e, struct link **l, struct task *t);
 void engine_barrier(struct engine *e);
 void engine_compute_next_snapshot_time(struct engine *e);
 void engine_compute_next_stf_time(struct engine *e);
+void engine_compute_next_stf_time_extra_outputs(struct engine *e);
 void engine_compute_next_fof_time(struct engine *e);
 void engine_compute_next_statistics_time(struct engine *e);
 void engine_recompute_displacement_constraint(struct engine *e);

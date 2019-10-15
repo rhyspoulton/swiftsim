@@ -178,7 +178,28 @@ struct groupinfo {
 
 int InitVelociraptor(char *config_name, struct unitinfo unit_info,
                      struct siminfo sim_info, const int numthreads);
+int InitVelociraptorExtra(const int i, char *config_name, struct unitinfo unit_info,
+                  struct siminfo sim_info, const int numthreads);
 
+
+struct groupinfo *InvokeVelociraptor(
+  const int snapnum, char *output_name, struct cosmoinfo cosmo_info,
+  struct siminfo sim_info, const size_t num_gravity_parts,
+  const size_t num_hydro_parts, const size_t num_star_parts,
+  struct swift_vel_part *swift_parts, const int *cell_node_ids,
+  const int numthreads, const int return_group_flags,
+  int *const num_in_groups
+);
+struct groupinfo *InvokeVelociraptorExtra(
+  const int iextra,
+  const int snapnum, char *output_name, struct cosmoinfo cosmo_info,
+  struct siminfo sim_info, const size_t num_gravity_parts,
+  const size_t num_hydro_parts, const size_t num_star_parts,
+  struct swift_vel_part *swift_parts, const int *cell_node_ids,
+  const int numthreads, const int return_group_flags,
+  int *const num_in_groups
+);
+/*
 struct groupinfo *InvokeVelociraptor(
     const int snapnum, char *output_name, struct cosmoinfo cosmo_info,
     struct siminfo sim_info, const size_t num_gravity_parts,
@@ -199,6 +220,19 @@ struct groupinfo *InvokeVelociraptorHydro(
     struct swift_vel_star_part *swift_star_parts,
     struct swift_vel_bh_part *swift_bh_parts
 );
+struct groupinfo *InvokeVelociraptorExtra(
+    const int iextra,
+    const int snapnum, char *output_name, struct cosmoinfo cosmo_info,
+    struct siminfo sim_info, const size_t num_gravity_parts,
+    const size_t num_hydro_parts, const size_t num_star_parts, const size_t num_bh_parts,
+    struct swift_vel_part *swift_parts, const int *cell_node_ids,
+    const int numthreads, const int return_group_flags,
+    int *const num_in_groups,
+    struct swift_vel_gas_part *swift_gas_parts,
+    struct swift_vel_star_part *swift_star_parts,
+    struct swift_vel_bh_part *swift_bh_parts
+);
+*/
 
 #endif /* HAVE_VELOCIRAPTOR */
 
@@ -392,15 +426,28 @@ void velociraptor_init(struct engine *e) {
             unit_info.energyperunitmass);
     message("VELOCIraptor conf: G: %e", unit_info.gravity);
     message("VELOCIraptor conf: H0/h: %e", unit_info.hubbleunit);
-    message("VELOCIraptor conf: Config file name: %s", e->stf_config_file_name);
     message("VELOCIraptor conf: Cosmological Simulation: %d",
             sim_info.icosmologicalsim);
+    message("VELOCIraptor conf: Config file name: %s", e->stf_config_file_name);
+    if (e->num_extra_stf_outputs) {
+        message("Multiple VR invocations with different snapshot candence and different configs requested");
+        for (int i=0;i<e->num_extra_stf_outputs;i++) {
+            message("VELOCIraptor conf for extra output %d: Config file name: %s",i+1,e->stf_config_file_name_extra[i]);
+        }
+    }
   }
 
   /* Initialise VELOCIraptor. */
   if (InitVelociraptor(e->stf_config_file_name, unit_info, sim_info,
                        e->nr_threads) != 1)
     error("VELOCIraptor initialisation failed.");
+  if (e->num_extra_stf_outputs) {
+      for (int i=0;i<e->num_extra_stf_outputs;i++) {
+          if (InitVelociraptorExtra(i, e->stf_config_file_name_extra[i], unit_info, sim_info, e->nr_threads) != 1) {
+              error("VELOCIraptor initialisation for extra output %d with config %s failed.",i+1,e->stf_config_file_name_extra[i]);
+          }
+      }
+  }
 
   if (e->verbose)
     message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
@@ -415,6 +462,8 @@ void velociraptor_init(struct engine *e) {
  *
  * @param e The #engine.
  * @param linked_with_snap Are we running at the same time as a snapshot dump?
+ * note that if linked_with_snap < 0, this indicates that the invoke has been
+ * called from the extra velociraptor dumps for extra dump listed in -linked_with_snap-1
  */
 void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
 
@@ -425,9 +474,10 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   const size_t nr_gparts = s->nr_gparts;
   const size_t nr_parts = s->nr_parts;
   const size_t nr_sparts = s->nr_sparts;
-  const size_t nr_bparts = s->nr_bparts;
+  // const size_t nr_bparts = s->nr_bparts;
   const int nr_cells = s->nr_cells;
   const struct cell *cells_top = s->cells_top;
+  int iextraoutput;
 
   /* Allow thread to run on any core for the duration of the call to
    * VELOCIraptor so that  when OpenMP threads are spawned
@@ -587,21 +637,33 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   char outputFileName[PARSER_MAX_LINE_SIZE + 128];
 
   /* What should the filename be? */
-  if (linked_with_snap) {
+  if (linked_with_snap > 0) {
     snprintf(outputFileName, PARSER_MAX_LINE_SIZE + 128,
              "stf_%s_%04i.VELOCIraptor", e->snapshot_base_name,
              e->snapshot_output_count);
-  } else {
+  }
+  else if (linked_with_snap == 0){
     snprintf(outputFileName, PARSER_MAX_LINE_SIZE + 128, "%s_%04i.VELOCIraptor",
              e->stf_base_name, e->stf_output_count);
+  }
+  else if (linked_with_snap <0)
+  {
+    iextraoutput = -linked_with_snap - 1;
+    snprintf(outputFileName, PARSER_MAX_LINE_SIZE + 128, "%s_%04i.VELOCIraptor",
+             e->stf_base_name_extra[iextraoutput], e->stf_output_count_extra[iextraoutput]);
   }
 
   /* What is the snapshot number? */
   int snapnum;
-  if (linked_with_snap) {
+  if (linked_with_snap > 0) {
     snapnum = e->snapshot_output_count;
-  } else {
+  }
+  else if (linked_with_snap == 0) {
     snapnum = e->stf_output_count;
+  }
+  else if (linked_with_snap < 0) {
+    iextraoutput = -linked_with_snap - 1;
+    snapnum = e->stf_output_count_extra[iextraoutput];
   }
 
   tic = getticks();
@@ -609,9 +671,9 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   /* Allocate and populate an array of swift_vel_parts to be passed to
    * VELOCIraptor. */
   struct swift_vel_part *swift_parts = NULL;
-  struct swift_vel_gas_part *swift_gas_parts = NULL;
-  struct swift_vel_star_part *swift_star_parts = NULL;
-  struct swift_vel_bh_part *swift_bh_parts = NULL;
+  // struct swift_vel_gas_part *swift_gas_parts = NULL;
+  // struct swift_vel_star_part *swift_star_parts = NULL;
+  // struct swift_vel_bh_part *swift_bh_parts = NULL;
   if (posix_memalign((void **)&swift_parts, part_align,
                      nr_gparts * sizeof(struct swift_vel_part)) != 0)
     error("Failed to allocate array of particles for VELOCIraptor.");
@@ -632,30 +694,59 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   struct groupinfo *group_info = NULL;
 
   /* Call VELOCIraptor. */
-  group_info = (struct groupinfo *)InvokeVelociraptorHydro(
-      snapnum, outputFileName, cosmo_info, sim_info, nr_gparts, nr_parts,
-      nr_sparts, nr_bparts, swift_parts, cell_node_ids, e->nr_threads, linked_with_snap,
-      &num_gparts_in_groups,
-      swift_gas_parts, swift_star_parts, swift_bh_parts
-  );
+  if (linked_with_snap >= 0) {
+      group_info = (struct groupinfo *)InvokeVelociraptor(
+          snapnum, outputFileName, cosmo_info, sim_info,
+          nr_gparts, nr_parts, nr_sparts,
+          swift_parts, cell_node_ids, e->nr_threads, linked_with_snap,
+          &num_gparts_in_groups
+      );
+      /*
+      group_info = (struct groupinfo *)InvokeVelociraptor(
+          snapnum, outputFileName, cosmo_info, sim_info,
+          nr_gparts, nr_parts, nr_sparts, nr_bparts,
+          swift_parts, cell_node_ids, e->nr_threads, linked_with_snap,
+          &num_gparts_in_groups,
+          swift_gas_parts, swift_star_parts, swift_bh_parts
+      );
+      */
+  }
+  else {
+      iextraoutput = -linked_with_snap - 1;
+      group_info = (struct groupinfo *)InvokeVelociraptorExtra(
+          iextraoutput, snapnum, outputFileName, cosmo_info, sim_info,
+          nr_gparts, nr_parts, nr_sparts,
+          swift_parts, cell_node_ids, e->nr_threads, linked_with_snap,
+          &num_gparts_in_groups
+      );
+      /*
+      group_info = (struct groupinfo *)InvokeVelociraptorExtra(
+          iextraoutput, snapnum, outputFileName, cosmo_info, sim_info,
+          nr_gparts, nr_parts, nr_sparts, nr_bparts,
+          swift_parts, cell_node_ids, e->nr_threads, linked_with_snap,
+          &num_gparts_in_groups,
+          swift_gas_parts, swift_star_parts, swift_bh_parts
+      );
+      */
+  }
 
   /* Check that the ouput is valid */
-  if (linked_with_snap && group_info == NULL && num_gparts_in_groups < 0) {
+  if (linked_with_snap > 0 && group_info == NULL && num_gparts_in_groups < 0) {
     error("Exiting. Call to VELOCIraptor failed on rank: %d.", e->nodeID);
   }
-  if (!linked_with_snap && group_info != NULL) {
+  if (linked_with_snap <= 0 && group_info != NULL) {
     error("VELOCIraptor returned an array whilst it should not have.");
   }
 
   /* Report timing */
   if (e->verbose)
-    message("VR Invokation of velociraptor took %.3f %s.",
+    message("VR Invocation of velociraptor took %.3f %s.",
             clocks_from_ticks(getticks() - tic), clocks_getunit());
 
   tic = getticks();
 
   /* Assign the group IDs back to the gparts */
-  if (linked_with_snap) {
+  if (linked_with_snap > 0) {
 
     if (posix_memalign((void **)&s->gpart_group_data, part_align,
                        nr_gparts * sizeof(struct velociraptor_gpart_data)) != 0)
@@ -684,7 +775,11 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   pthread_setaffinity_np(thread, sizeof(cpu_set_t), engine_entry_affinity());
 
   /* Increase output counter (if not linked with snapshots) */
-  if (!linked_with_snap) e->stf_output_count++;
+  if (linked_with_snap == 0) e->stf_output_count++;
+  else if (linked_with_snap < 0){
+    iextraoutput = -linked_with_snap - 1;
+    e->stf_output_count_extra[iextraoutput]++;
+  }
 
 #else
   error("SWIFT not configure to run with VELOCIraptor.");

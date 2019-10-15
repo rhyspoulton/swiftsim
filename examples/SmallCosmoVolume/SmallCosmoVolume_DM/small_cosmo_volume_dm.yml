@@ -19,7 +19,7 @@ Cosmology:                      # WMAP9 cosmology
   Omega_b:        0.0455
   h:              0.703
   a_begin:        0.019607843	# z_ini = 50.
-  a_end:          1.0		# z_end = 0.
+  a_end:          0.0909		# z_end = 0.
 
 # Parameters governing the time integration
 TimeIntegration:
@@ -37,8 +37,8 @@ Gravity:
 # Parameters governing the snapshots
 Snapshots:
   basename:            snap
-  delta_time:          1.02
-  scale_factor_first:  0.02
+  delta_time:          1.1
+  scale_factor_first:  0.0323
   
 # Parameters governing the conserved quantities statistics
 Statistics:
