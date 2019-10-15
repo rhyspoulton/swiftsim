@@ -522,6 +522,10 @@ void scheduler_write_dependencies(struct scheduler *s, int verbose) {
 
   /* Be clean */
   free(task_dep);
+#ifdef WITH_MPI
+  MPI_Type_free(&data_type);
+  MPI_Op_free(&sum);
+#endif
 
   if (verbose)
     message("Printing task graph took %.3f %s.",
@@ -718,8 +722,8 @@ static void scheduler_splittask_hydro(struct task *t, struct scheduler *s) {
 
           t->ci = ci->progeny[csp->pairs[0].pid];
           t->cj = cj->progeny[csp->pairs[0].pjd];
-          cell_set_flag(t->ci, cell_flag_has_tasks);
-          cell_set_flag(t->cj, cell_flag_has_tasks);
+          if (t->ci != NULL) cell_set_flag(t->ci, cell_flag_has_tasks);
+          if (t->cj != NULL) cell_set_flag(t->cj, cell_flag_has_tasks);
 
           t->flags = csp->pairs[0].sid;
           for (int k = 1; k < csp->count; k++) {
