@@ -31,6 +31,125 @@ __attribute__((always_inline)) INLINE static int row_major_id_periodic(int i,
   return (((i + N) % N) * N * N + ((j + N) % N) * N + ((k + N) % N));
 }
 
+// TODO(smutch): Make this available from `mesh_gravity.c`
+/**
+ * @brief Interpolate a value to a mesh using CIC.
+ *
+ * @param mesh The mesh to write to
+ * @param N The side-length of the mesh
+ * @param i The index of the cell along x
+ * @param j The index of the cell along y
+ * @param k The index of the cell along z
+ * @param tx First CIC coefficient along x
+ * @param ty First CIC coefficient along y
+ * @param tz First CIC coefficient along z
+ * @param dx Second CIC coefficient along x
+ * @param dy Second CIC coefficient along y
+ * @param dz Second CIC coefficient along z
+ * @param value The value to interpolate.
+ */
+__attribute__((always_inline)) INLINE static void CIC_set(
+    double* mesh, int N, int i, int j, int k, double tx, double ty, double tz,
+    double dx, double dy, double dz, double value) {
+
+  /* Classic CIC interpolation */
+  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 0, k + 0, N)],
+               value * tx * ty * tz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 0, k + 1, N)],
+               value * tx * ty * dz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 1, k + 0, N)],
+               value * tx * dy * tz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 0, j + 1, k + 1, N)],
+               value * tx * dy * dz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 0, k + 0, N)],
+               value * dx * ty * tz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 0, k + 1, N)],
+               value * dx * ty * dz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 1, k + 0, N)],
+               value * dx * dy * tz);
+  atomic_add_d(&mesh[row_major_id_periodic(i + 1, j + 1, k + 1, N)],
+               value * dx * dy * dz);
+}
+
+// TODO(smutch): Make this available from `mesh_gravity.c`
+/**
+ * @brief Assigns a given #gpart property to a grid using the CIC method.
+ *
+ * @param gp The #gpart.
+ * @param prop_offset The offset of the #gpart struct property to be gridded.
+ * @param rho The density mesh.
+ * @param dim the size of the mesh along each axis.
+ * @param fac The width of a mesh cell.
+ * @param box_size The dimensions of the simulation box.
+ */
+__attribute__((always_inline)) INLINE static void part_to_grid_CIC(
+    const struct gpart* gp, ptrdiff_t prop_offset, double* grid, const int dim,
+    const double fac[3], const double box_size[3]) {
+
+  /* Box wrap the multipole's position */
+  const double pos_x = box_wrap(gp->x[0], 0., box_size[0]);
+  const double pos_y = box_wrap(gp->x[1], 0., box_size[1]);
+  const double pos_z = box_wrap(gp->x[2], 0., box_size[2]);
+
+  /* Workout the CIC coefficients */
+  int i = (int)(fac[0] * pos_x);
+  if (i >= dim) i = dim - 1;
+  const double dx = fac[0] * pos_x - i;
+  const double tx = 1. - dx;
+
+  int j = (int)(fac[1] * pos_y);
+  if (j >= dim) j = dim - 1;
+  const double dy = fac[1] * pos_y - j;
+  const double ty = 1. - dy;
+
+  int k = (int)(fac[2] * pos_z);
+  if (k >= dim) k = dim - 1;
+  const double dz = fac[2] * pos_z - k;
+  const double tz = 1. - dz;
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (i < 0 || i >= dim) error("Invalid gpart position in x");
+  if (j < 0 || j >= dim) error("Invalid gpart position in y");
+  if (k < 0 || k >= dim) error("Invalid gpart position in z");
+#endif
+
+  const double val = (prop_offset < 0) ? 1.0 : *(double*)(gp + prop_offset);
+
+  /* CIC ! */
+  CIC_set(grid, dim, i, j, k, tx, ty, tz, dx, dy, dz, val);
+}
+
+struct gridding_extra_data {
+  double cell_size[3];
+  double box_size[3];
+  ptrdiff_t prop_offset;
+  double* grid;
+  int grid_dim;
+  int n_grid_points;
+};
+
+static void construct_grid_CIC_mapper(void* restrict gparts_v, int N,
+                                      void* restrict extra_data_v) {
+
+  const struct gridding_extra_data extra_data =
+      *((const struct gridding_extra_data*)extra_data_v);
+  const struct gpart* gparts = (struct gpart*)gparts_v;
+
+  const double* cell_size = extra_data.cell_size;
+  const double* box_size = extra_data.box_size;
+  const double fac[3] = {1.0 / cell_size[0], 1.0 / cell_size[1],
+                         1.0 / cell_size[2]};
+  double* grid = extra_data.grid;
+  const int grid_dim = extra_data.grid_dim;
+  const ptrdiff_t prop_offset = extra_data.prop_offset;
+
+  for (int ii = 0; ii < N; ++ii) {
+    const struct gpart* gp = &(gparts[ii]);
+    // Assumption here is that all particles have the same mass.
+    part_to_grid_CIC(gp, prop_offset, grid, grid_dim, fac, box_size);
+  }
+}
+
 __attribute__((always_inline)) INLINE static int part_to_grid_index(
     const struct gpart* gp, const double cell_size[3], const double grid_dim,
     const int n_grid_points) {
@@ -46,39 +165,8 @@ __attribute__((always_inline)) INLINE static int part_to_grid_index(
   return index;
 }
 
-struct gridding_extra_data {
-  double cell_size[3];
-  int* point_counts;
-  double* grid;
-  int grid_dim;
-  int n_grid_points;
-  int vel_component;
-};
-
-static void construct_point_count_mapper(void* restrict gparts_v, int N,
-                                         void* restrict extra_data_v) {
-
-  const struct gridding_extra_data extra_data =
-      *((const struct gridding_extra_data*)extra_data_v);
-  const struct gpart* gparts = (struct gpart*)gparts_v;
-
-  const double* cell_size = extra_data.cell_size;
-  int* point_counts = extra_data.point_counts;
-  const int grid_dim = extra_data.grid_dim;
-  const int n_grid_points = extra_data.n_grid_points;
-
-  for (int ii = 0; ii < N; ++ii) {
-    const struct gpart* gp = &(gparts[ii]);
-    int index = part_to_grid_index(gp, cell_size, grid_dim, n_grid_points);
-    // Assumption here is that all particles have the same mass.
-    atomic_inc(
-        &(point_counts[index]));  // note that this can be reused as required
-                                  // for other gridded properties
-  }
-}
-
-static void construct_velocity_grid_mapper(void* restrict gparts_v, int N,
-                                           void* restrict extra_data_v) {
+static void construct_grid_NGP_mapper(void* restrict gparts_v, int N,
+                                      void* restrict extra_data_v) {
 
   const struct gridding_extra_data extra_data =
       *((const struct gridding_extra_data*)extra_data_v);
@@ -88,12 +176,13 @@ static void construct_velocity_grid_mapper(void* restrict gparts_v, int N,
   double* grid = extra_data.grid;
   const int grid_dim = extra_data.grid_dim;
   const int n_grid_points = extra_data.n_grid_points;
-  const int component = extra_data.vel_component;
+  const ptrdiff_t prop_offset = extra_data.prop_offset;
 
   for (int ii = 0; ii < N; ++ii) {
     const struct gpart* gp = &(gparts[ii]);
     int index = part_to_grid_index(gp, cell_size, grid_dim, n_grid_points);
-    atomic_add_d(&(grid[index]), gp->v_full[component]);
+    const double val = (prop_offset < 0) ? 1.0 : *(double*)(gp + prop_offset);
+    atomic_add_d(&(grid[index]), val);
   }
 }
 
@@ -122,15 +211,13 @@ void darkmatter_write_grids(struct engine* e, const size_t Npart,
     grid[ii] = 0.0;
   }
 
-  /* Array to be used to store integer particle counts at all grid points.
-   * Note that if we move away from nearest grid point, this will need to be
-   * changed to a double array. */
-  int* point_counts = NULL;
+  /* Array to be used to store particle counts at all grid points. */
+  double* point_counts = NULL;
   if (swift_memalign("countgrid", (void**)&point_counts, IO_BUFFER_ALIGNMENT,
-                     n_grid_points * sizeof(int)) != 0) {
+                     n_grid_points * sizeof(double)) != 0) {
     error("Failed to allocate point counts grids!");
   }
-  bzero(point_counts, n_grid_points * sizeof(int));
+  bzero(point_counts, n_grid_points * sizeof(double));
 
   /* Calculate information for the write that is not dependent on the property
      being written. */
@@ -175,9 +262,8 @@ void darkmatter_write_grids(struct engine* e, const size_t Npart,
 
   /* extra data for threadpool_map calls */
   struct gridding_extra_data extra_data;
-  extra_data.point_counts = point_counts;
-  extra_data.grid = grid;
   memcpy(extra_data.cell_size, cell_size, sizeof(double) * 3);
+  memcpy(extra_data.box_size, box_size, sizeof(double) * 3);
   extra_data.grid_dim = grid_dim;
   extra_data.n_grid_points = n_grid_points;
 
@@ -185,34 +271,48 @@ void darkmatter_write_grids(struct engine* e, const size_t Npart,
    * point_counts available to do the averaging of the velocities. */
   enum grid_types { DENSITY, VELOCITY_X, VELOCITY_Y, VELOCITY_Z };
 
+  void* construct_grid_mapper = construct_grid_NGP_mapper;
+  if (strncmp(e->snapshot_grid_method, "CIC", 3) == 0) {
+    construct_grid_mapper = construct_grid_CIC_mapper;
+  } else if (strncmp(e->snapshot_grid_method, "NGP", 3) != 0) {
+    message(
+        "WARNING: Unknown snapshot gridding method (Snapshots:grid_method). "
+        "Falling back to NGP.");
+  }
+
   for (enum grid_types grid_type = DENSITY; grid_type <= VELOCITY_Z;
        ++grid_type) {
     /* Loop through all particles and assign to the grid. */
     switch (grid_type) {
       case DENSITY:
+        extra_data.grid = point_counts;
+        extra_data.prop_offset = -1;
         threadpool_map((struct threadpool*)&e->threadpool,
-                       construct_point_count_mapper, gparts, Npart,
+                       construct_grid_mapper, gparts, Npart,
                        sizeof(struct gpart), 0, (void*)&extra_data);
         break;
 
       case VELOCITY_X:
-        extra_data.vel_component = 0;
+        extra_data.grid = grid;
+        extra_data.prop_offset = offsetof(struct gpart, v_full[0]);
         threadpool_map((struct threadpool*)&e->threadpool,
-                       construct_velocity_grid_mapper, gparts, Npart,
+                       construct_grid_mapper, gparts, Npart,
                        sizeof(struct gpart), 0, (void*)&extra_data);
         break;
 
       case VELOCITY_Y:
-        extra_data.vel_component = 1;
+        extra_data.grid = grid;
+        extra_data.prop_offset = offsetof(struct gpart, v_full[1]);
         threadpool_map((struct threadpool*)&e->threadpool,
-                       construct_velocity_grid_mapper, gparts, Npart,
+                       construct_grid_mapper, gparts, Npart,
                        sizeof(struct gpart), 0, (void*)&extra_data);
         break;
 
       case VELOCITY_Z:
-        extra_data.vel_component = 2;
+        extra_data.grid = grid;
+        extra_data.prop_offset = offsetof(struct gpart, v_full[2]);
         threadpool_map((struct threadpool*)&e->threadpool,
-                       construct_velocity_grid_mapper, gparts, Npart,
+                       construct_grid_mapper, gparts, Npart,
                        sizeof(struct gpart), 0, (void*)&extra_data);
         break;
     }
@@ -232,7 +332,7 @@ void darkmatter_write_grids(struct engine* e, const size_t Npart,
         n_to_density = gparts[0].mass * unit_conv_factor /
                        (cell_size[0] * cell_size[1] * cell_size[2]);
         for (int ii = 0; ii < n_grid_points; ++ii) {
-          grid[ii] = n_to_density * (double)point_counts[ii];
+          grid[ii] = n_to_density * point_counts[ii];
         }
         break;
 
@@ -247,7 +347,7 @@ void darkmatter_write_grids(struct engine* e, const size_t Npart,
         unit_conv_factor = units_conversion_factor(
             internal_units, snapshot_units, UNIT_CONV_VELOCITY);
         for (int ii = 0; ii < n_grid_points; ++ii) {
-          grid[ii] *= unit_conv_factor / (double)point_counts[ii];
+          grid[ii] *= unit_conv_factor / point_counts[ii];
         }
         break;
     }

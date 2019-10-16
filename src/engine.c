@@ -2466,7 +2466,7 @@ void engine_check_for_dumps(struct engine *e) {
 #endif
         }
 
-          /* Dump... */
+        /* Dump... */
 #ifdef WITH_LOGGER
         /* Write a file containing the offsets in the particle logger. */
         engine_dump_index(e);
@@ -3405,6 +3405,8 @@ void engine_init(struct engine *e, struct space *s, struct swift_params *params,
       parser_get_opt_param_int(params, "Snapshots:dump_grids", 0);
   e->snapshot_grid_dim =
       parser_get_opt_param_int(params, "Snapshots:grid_dim", 128);
+  parser_get_opt_param_string(params, "Snapshots:grid_method",
+                              e->snapshot_grid_method, "NGP");
   e->snapshot_units = (struct unit_system *)malloc(sizeof(struct unit_system));
   units_init_default(e->snapshot_units, params, "Snapshots", internal_units);
   e->snapshot_output_count = 0;

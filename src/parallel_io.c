@@ -41,6 +41,7 @@
 #include "chemistry_io.h"
 #include "common_io.h"
 #include "cooling_io.h"
+#include "darkmatter_write_grids.h"
 #include "dimension.h"
 #include "engine.h"
 #include "entropy_floor.h"
@@ -1675,7 +1676,8 @@ void write_output_parallel(struct engine* e, const char* baseName,
           darkmatter_write_particles(gparts, list, &num_fields);
 
           if (e->snapshot_dump_grids)
-            darkmatter_write_grids(e, Ndm_written, h_file, internal_units, snapshot_units);
+            darkmatter_write_grids(e, Ndm_written, h_file, internal_units,
+                                   snapshot_units);
 
           if (with_fof) {
             num_fields += fof_write_gparts(gparts, list + num_fields);

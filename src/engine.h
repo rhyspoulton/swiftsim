@@ -282,6 +282,7 @@ struct engine {
   double delta_time_snapshot;
   int snapshot_dump_grids;
   int snapshot_grid_dim;
+  char snapshot_grid_method[PARSER_MAX_LINE_SIZE];
 
   /* Output_List for the snapshots */
   struct output_list *output_list_snapshots;
