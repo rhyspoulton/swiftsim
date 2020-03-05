@@ -65,6 +65,9 @@ struct pm_mesh {
 
   /*! Potential field */
   double *potential;
+
+  /*! Are we dumping the mesh to disk when a lot of RAM is needed? */
+  int dump_mesh;
 };
 
 void pm_mesh_init(struct pm_mesh *mesh, const struct gravity_props *props,
@@ -76,6 +79,9 @@ void pm_mesh_interpolate_forces(const struct pm_mesh *mesh,
                                 const struct engine *e, struct gpart *gparts,
                                 int gcount);
 void pm_mesh_clean(struct pm_mesh *mesh);
+
+void pm_mesh_dump_to_disk(const struct engine *e, struct pm_mesh *mesh);
+void pm_mesh_read_from_disk(const struct engine *e, struct pm_mesh *mesh);
 
 /* Dump/restore. */
 void pm_mesh_struct_dump(const struct pm_mesh *p, FILE *stream);

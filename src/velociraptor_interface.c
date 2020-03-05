@@ -452,6 +452,7 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
 
   /* Start by freeing some of the unnecessary memory to give VR some breathing
      space */
+  pm_mesh_dump_to_disk(e, e->mesh);
 #ifdef WITH_MPI
   space_free_foreign_parts(e->s, /*clear_cell_pointers=*/1);
 #endif
@@ -787,8 +788,8 @@ void velociraptor_invoke(struct engine *e, const int linked_with_snap) {
   e->stf_this_timestep = 1;
 
   /* Reallocate the memory that was freed earlier */
+  pm_mesh_read_from_disk(e, e->mesh);
 #ifdef WITH_MPI
-
   engine_allocate_foreign_particles(e);
 #endif
 

@@ -703,6 +703,7 @@ void pm_mesh_init(struct pm_mesh* mesh, const struct gravity_props* props,
   mesh->r_s_inv = 1. / mesh->r_s;
   mesh->r_cut_max = mesh->r_s * props->r_cut_max_ratio;
   mesh->r_cut_min = mesh->r_s * props->r_cut_min_ratio;
+  mesh->dump_mesh = 1;
 
   if (mesh->N > 1290)
     error(
@@ -754,6 +755,89 @@ void pm_mesh_init_no_mesh(struct pm_mesh* mesh, double dim[3]) {
   mesh->r_s = FLT_MAX;
   mesh->r_cut_min = FLT_MAX;
   mesh->r_cut_max = FLT_MAX;
+  mesh->dump_mesh = 0;
+}
+
+void pm_mesh_dump_to_disk(const struct engine* e, struct pm_mesh* mesh) {
+
+  const ticks tic = getticks();
+
+  /* Abort early? */
+  if (!mesh->dump_mesh) return;
+
+  /* Rank 0 dumps the mesh to disk */
+  if (e->nodeID == 0) {
+
+    FILE* file = fopen("swift_mesh_dump.dat", "w");
+    if (file == NULL) error("Failed to open SWIFT mesh dump file");
+
+    const size_t N = mesh->N;
+    const size_t nwrite =
+        fwrite(mesh->potential, sizeof(double), N * N * N, file);
+
+    if (nwrite != N * N * N) error("Incorrect number of bytes written");
+
+    fclose(file);
+  }
+
+#ifdef WITH_MPI
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
+  /* Free the memory allocated for the mesh */
+  if (mesh->potential) {
+    memuse_log_allocation("fftw_mesh.potential", mesh->potential, 0, 0);
+    free(mesh->potential);
+  }
+  mesh->potential = 0;
+
+  if (e->verbose)
+    message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
+            clocks_getunit());
+}
+
+void pm_mesh_read_from_disk(const struct engine* e, struct pm_mesh* mesh) {
+
+  const ticks tic = getticks();
+
+  /* Abort early? */
+  if (!mesh->dump_mesh) return;
+
+#ifdef SWIFT_DEBUG_CHECKS
+  if (mesh->potential != 0) error("Mesh already allocated!");
+#endif
+
+  /* Reallocate the memory for the mesh */
+  const size_t N = mesh->N;
+  mesh->potential = (double*)fftw_malloc(sizeof(double) * N * N * N);
+  if (mesh->potential == NULL)
+    error("Error allocating memory for the long-range gravity mesh.");
+  memuse_log_allocation("fftw_mesh.potential", mesh->potential, 1,
+                        sizeof(double) * N * N * N);
+
+#ifdef WITH_MPI
+  MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
+  /* Everybody reads back from the file */
+  FILE* file = fopen("swift_mesh_dump.dat", "r");
+  if (file == NULL) error("Failed to open SWIFT mesh dump file");
+
+  const size_t nread = fwrite(mesh->potential, sizeof(double), N * N * N, file);
+
+  if (nread != N * N * N) error("Incorrect number of bytes read");
+
+  fclose(file);
+
+  /* Delete the file */
+  if (e->nodeID == 0) {
+    if (remove("swift_mesh_dump.dat") != 0)
+      error("Error removing SWIFT mesh dump file");
+  }
+
+  if (e->verbose)
+    message("took %.3f %s.", clocks_from_ticks(getticks() - tic),
+            clocks_getunit());
 }
 
 /**
