@@ -758,6 +758,11 @@ void pm_mesh_init_no_mesh(struct pm_mesh* mesh, double dim[3]) {
   mesh->dump_mesh = 0;
 }
 
+/**
+ * @brief Write the potential grid to a file and free the allocated memory.
+ *
+ * Since all ranks have the same mesh, only ranks 0 writes.
+ */
 void pm_mesh_dump_to_disk(const struct engine* e, struct pm_mesh* mesh) {
 
   const ticks tic = getticks();
@@ -796,6 +801,10 @@ void pm_mesh_dump_to_disk(const struct engine* e, struct pm_mesh* mesh) {
             clocks_getunit());
 }
 
+/**
+ * @brief Reads the potential grid from a file after having allocated the
+ * memory.
+ */
 void pm_mesh_read_from_disk(const struct engine* e, struct pm_mesh* mesh) {
 
   const ticks tic = getticks();
@@ -823,7 +832,7 @@ void pm_mesh_read_from_disk(const struct engine* e, struct pm_mesh* mesh) {
   FILE* file = fopen("swift_mesh_dump.dat", "r");
   if (file == NULL) error("Failed to open SWIFT mesh dump file");
 
-  const size_t nread = fwrite(mesh->potential, sizeof(double), N * N * N, file);
+  const size_t nread = fread(mesh->potential, sizeof(double), N * N * N, file);
 
   if (nread != N * N * N) error("Incorrect number of bytes read");
 
